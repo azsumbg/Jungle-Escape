@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Jungle Escape/Jungle Escape.vcxproj" Id="fef33581-6802-4c10-9923-bc851c3466da" />
+</Solution>

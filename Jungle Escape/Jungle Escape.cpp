@@ -310,7 +310,7 @@ void InitGame()
 	field_dir = dirs::stop;
 
 	vBackgrounds.clear();
-	for (float t_x = -scr_width; t_x < 2 * scr_width; t_x += scr_width)
+	for (float t_x = -scr_width; t_x < 2.0f * scr_width; t_x += scr_width)
 		vBackgrounds.push_back(D2D1::RectF(t_x, 50.0f, scr_width, scr_height));
 
 	if (!vTiles.empty())for (int i = 0; i < vTiles.size(); ++i)FreeMem(&vTiles[i]);
@@ -318,20 +318,25 @@ void InitGame()
 	float tile_x{ -scr_width };
 	for (int i = 0; i < 54; ++i)
 	{
-		tiles temp_type{ static_cast<tiles>(RandIt(0,5)) };
-		if ((temp_type == tiles::trap_axe|| temp_type == tiles::trap_bolt|| temp_type == tiles::trap_spear) 
-			&& RandIt(0, 3) == 1)temp_type = tiles::dirt;
+		tiles temp_type{ tiles::dirt };
+		int trouble = RandIt(0, 30);
+
+		if (trouble == 1)temp_type = tiles::water;
+		else if (trouble == 18)temp_type = tiles::dirt_water;
+		else if (trouble == 11)temp_type = tiles::trap_axe;
+		else if (trouble == 30)temp_type = tiles::trap_bolt;
+		else if (trouble == 22)temp_type = tiles::trap_spear;
 
 		if (temp_type != tiles::water && temp_type != tiles::dirt_water)
 		{
-			vTiles.push_back(dll::TILE::create(temp_type, tile_x, ground - 50.0f, dirs::stop));
+			vTiles.push_back(dll::TILE::create(temp_type, tile_x, ground, dirs::stop));
 			tile_x += 50.0f;
 		}
 		else
 		{
 			for (int j = 0; j < 2; ++j)
 			{
-				vTiles.push_back(dll::TILE::create(temp_type, tile_x, ground - 50.0f, dirs::stop));
+				vTiles.push_back(dll::TILE::create(temp_type, tile_x, ground, dirs::stop));
 				tile_x += 50.0f;
 			}
 		}
@@ -560,8 +565,21 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 		}
 		break;
 
+	case WM_KEYDOWN:
+		if (Hero)
+		{
+			switch (wParam)
+			{
+			case VK_RIGHT:
+				Hero->dir = dirs::right;
+				break;
 
-
+			case VK_LEFT:
+				Hero->dir = dirs::left;
+				break;
+			}
+		}
+		break;
 
 
 
@@ -1007,16 +1025,41 @@ void CreateResources()
 
 		}
 
+		hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
+			reinterpret_cast<IUnknown**>(&iWriteFactory));
+		if (hr != S_OK)
+		{
+			LogErr(L"Error creating D2D1 iWriteFactory !");
+			ErrExit(eD2D);
+		}
+
+		if (iWriteFactory)
+		{
+			hr = iWriteFactory->CreateTextFormat(L"Cascadia code", NULL, DWRITE_FONT_WEIGHT_EXTRA_BLACK,
+				DWRITE_FONT_STYLE_OBLIQUE, DWRITE_FONT_STRETCH_NORMAL, 16.0f, L"", &nrmTxt);
+			hr = iWriteFactory->CreateTextFormat(L"Cascadia code", NULL, DWRITE_FONT_WEIGHT_EXTRA_BLACK,
+				DWRITE_FONT_STYLE_OBLIQUE, DWRITE_FONT_STRETCH_NORMAL, 24.0f, L"", &midTxt);
+			hr = iWriteFactory->CreateTextFormat(L"Cascadia code", NULL, DWRITE_FONT_WEIGHT_EXTRA_BLACK,
+				DWRITE_FONT_STYLE_OBLIQUE, DWRITE_FONT_STRETCH_NORMAL, 72.0f, L"", &bigTxt);
+			if (hr != S_OK)
+			{
+				LogErr(L"Error creating D2D1 iWriteFactory Text Formats !");
+				ErrExit(eD2D);
+			}
+		}
 	}
 
+	PlaySound(L".\\res\\snd\\intro.wav", NULL, SND_ASYNC);
 
-
-
+	for (int i = 0; i < 181; ++i)
+	{
+		Draw->BeginDraw();
+		Draw->DrawBitmap(bmpIntro[i], D2D1::RectF(0, 0, scr_width, scr_height));
+		Draw->DrawBitmap(bmpLogo, D2D1::RectF(0, 0, scr_width, scr_height));
+		Draw->EndDraw();
+	}
+	Sleep(2000);
 }
-
-
-
-
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
@@ -1028,6 +1071,94 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		ErrExit(eClass);
 	}
 
+	CreateResources();
+
+	while (bMsg.message != WM_QUIT)
+	{
+		if ((bRet = PeekMessage(&bMsg, NULL, NULL, NULL, PM_REMOVE)) != 0)
+		{
+			if (bRet == -1)ErrExit(eMsg);
+			TranslateMessage(&bMsg);
+			DispatchMessage(&bMsg);
+		}
+
+		if (pause)
+		{
+			if (show_help)continue;
+
+			if (bigTxt && txtBrush)
+			{
+				Draw->BeginDraw();
+				Draw->DrawBitmap(bmpIntro[GetIntroFrame()], D2D1::RectF(0, 0, scr_width, scr_height));
+				Draw->DrawTextW(L"ПАУЗА", 6, bigTxt, D2D1::RectF(scr_width / 2.0f - 100.0f, scr_height / 2.0f - 50.0f,
+					scr_width, scr_height), txtBrush);
+				Draw->EndDraw();
+				continue;
+			}
+		}
+
+	//////////////////////////////////////////////////////////////
+
+		if (Hero)
+		{
+			switch (Hero->dir)
+			{
+			case dirs::left:
+				field_dir = dirs::right;
+				break;
+
+			case dirs::right:
+				field_dir = dirs::left;
+				break;
+
+			case dirs::stop:
+				field_dir = dirs::stop;
+				break;
+			}
+		}
+		if (!vBackgrounds.empty())
+		{
+			switch (field_dir)
+			{
+			case dirs::left:
+				for (int i = 0; i < vBackgrounds.size(); ++i)
+				{
+					vBackgrounds[i].left -= (float)(level);
+					vBackgrounds[i].right -= (float)(level);
+					if (vBackgrounds[i].right <= -scr_width)
+					{
+						vBackgrounds.erase(vBackgrounds.begin() + i);
+						need_back_right = true;
+						break;
+					}
+				}
+				break;
+
+			case dirs::right:
+				for (int i = 0; i < vBackgrounds.size(); ++i)
+				{
+					vBackgrounds[i].left += (float)(level);
+					vBackgrounds[i].right += (float)(level);
+					if (vBackgrounds[i].left >= 2.0f * scr_width)
+					{
+						vBackgrounds.erase(vBackgrounds.begin() + i);
+						need_back_left = true;
+						break;
+					}
+				}
+				break;
+			}
+		}
+		if (need_back_left)
+		{
+			need_back_left = false;
+			vBackgrounds.insert(vBackgrounds.begin(), D2D1::RectF(-scr_width, 50.0f, scr_width, scr_height));
+		}
+		if (need_back_right)
+		{
+			need_back_right = false;
+			vBackgrounds.push_back(D2D1::RectF(scr_width, 50.0, 2.0f * scr_width, scr_height));
+		}
 
 
 
@@ -1037,7 +1168,107 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 
 
+	// DRAW THINGS ***********************************************
 
+		Draw->BeginDraw();
+		if (nrmTxt && statBrush && txtBrush && hgltBrush && inactBrush && b1BckgBrush && b2BckgBrush && b3BckgBrush)
+		{
+			Draw->FillRectangle(D2D1::RectF(0, 0, scr_width, 50.0f), statBrush);
+			Draw->FillRoundedRectangle(D2D1::RoundedRect(b1Rect, 20.0f, 25.0f), b1BckgBrush);
+			Draw->FillRoundedRectangle(D2D1::RoundedRect(b2Rect, 20.0f, 25.0f), b2BckgBrush);
+			Draw->FillRoundedRectangle(D2D1::RoundedRect(b3Rect, 20.0f, 25.0f), b3BckgBrush);
+
+			if (name_set)Draw->DrawTextW(L"ИМЕ НА ИГРАЧ", 13, nrmTxt, b1TxtRect, inactBrush);
+			else
+			{
+				if (b1Hglt)Draw->DrawTextW(L"ИМЕ НА ИГРАЧ", 13, nrmTxt, b1TxtRect, hgltBrush);
+				else Draw->DrawTextW(L"ИМЕ НА ИГРАЧ", 13, nrmTxt, b1TxtRect, txtBrush);
+			}
+
+			if (b2Hglt)Draw->DrawTextW(L"ЗВУЦИ ON / OFF", 15, nrmTxt, b2TxtRect, hgltBrush);
+			else Draw->DrawTextW(L"ЗВУЦИ ON / OFF", 15, nrmTxt, b2TxtRect, txtBrush);
+			if (b3Hglt)Draw->DrawTextW(L"ПОМОЩ ЗА ИГРАТА", 16, nrmTxt, b3TxtRect, hgltBrush);
+			else Draw->DrawTextW(L"ПОМОЩ ЗА ИГРАТА", 16, nrmTxt, b3TxtRect, txtBrush);
+		}
+
+	///////////////////////////////////////////////////////////////
+
+		if (!vBackgrounds.empty())
+		{
+			for (int i = 0; i < vBackgrounds.size(); ++i)Draw->DrawBitmap(bmpBackground, vBackgrounds[i]);
+		}
+
+		if (!vTiles.empty())
+		{
+			for (int i = 0; i < vTiles.size(); ++i)
+			{
+				switch (vTiles[i]->type)
+				{
+				case tiles::dirt:
+					Draw->DrawBitmap(bmpDirt, D2D1::RectF(vTiles[i]->start.x, vTiles[i]->start.y,
+						vTiles[i]->end.x, vTiles[i]->end.y));
+					break;
+
+				case tiles::dirt_water:
+					Draw->DrawBitmap(bmpWater2, D2D1::RectF(vTiles[i]->start.x, vTiles[i]->start.y,
+						vTiles[i]->end.x, vTiles[i]->end.y));
+					break;
+
+				case tiles::water:
+					Draw->DrawBitmap(bmpWater, D2D1::RectF(vTiles[i]->start.x, vTiles[i]->start.y,
+						vTiles[i]->end.x, vTiles[i]->end.y));
+					break;
+
+				case tiles::trap_axe:
+					Draw->DrawBitmap(bmpTrapAxe, D2D1::RectF(vTiles[i]->start.x, vTiles[i]->start.y,
+						vTiles[i]->end.x, vTiles[i]->end.y));
+					break;
+
+				case tiles::trap_bolt:
+					Draw->DrawBitmap(bmpTrapBolt, D2D1::RectF(vTiles[i]->start.x, vTiles[i]->start.y,
+						vTiles[i]->end.x, vTiles[i]->end.y));
+					break;
+
+				case tiles::trap_spear:
+					Draw->DrawBitmap(bmpTrapSpear, D2D1::RectF(vTiles[i]->start.x, vTiles[i]->start.y,
+						vTiles[i]->end.x, vTiles[i]->end.y));
+					break;
+				}
+			}
+		}
+		
+		if (Hero)
+		{
+			int aframe = Hero->get_frame();
+
+			switch (Hero->dir)
+			{
+			case dirs::left:
+				Draw->DrawBitmap(bmpHeroL[aframe], Resizer(bmpHeroL[aframe], Hero->start.x, Hero->start.y));
+				break;
+
+			case dirs::right:
+				Draw->DrawBitmap(bmpHeroR[aframe], Resizer(bmpHeroR[aframe], Hero->start.x, Hero->start.y)); 
+				break;
+
+			case dirs::stop:
+				Draw->DrawBitmap(bmpHeroR[aframe], Resizer(bmpHeroR[aframe], Hero->start.x, Hero->start.y));
+				break;
+			}
+		}
+
+
+
+
+
+
+
+
+	//////////////////////////////////////////////////////////////
+
+		Draw->EndDraw();
+
+	}
 
 	ClearResources();
 	std::remove(tmp_file);

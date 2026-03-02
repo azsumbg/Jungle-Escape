@@ -30,8 +30,8 @@ constexpr char SHOOT{ 0b00100000 };
 
 enum class dirs { right = 0, left = 1, up = 2, down = 3, stop = 4 };
 enum class tiles {
-	dirt = 0, water = 1, dirt_water = 2, tree1 = 3,
-	tree2 = 4, tree3 = 5, trap_axe = 6, trap_bolt = 7, trap_spear = 8
+	dirt = 0, water = 1, dirt_water = 2, trap_axe = 3, trap_bolt = 4, trap_spear = 5, tree1 = 6,
+	tree2 = 7, tree3 = 8
 };
 enum class platforms { flat_platform1 = 0, flat_platform2 = 1, high_platform = 2 };
 enum class shots { arrow = 0, tomahawk = 1 };

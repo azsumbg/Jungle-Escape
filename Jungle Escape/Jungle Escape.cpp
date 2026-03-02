@@ -141,6 +141,23 @@ ID2D1Bitmap* bmpSnailR[32]{ nullptr };
 
 ID2D1Bitmap* bmpOctopus[36]{ nullptr };
 
+///////////////////////////////////////////////////////
+
+dll::RANDIT RandIt{};
+
+std::vector<D2D1_RECT_F> vBackgrounds;
+std::vector<dll::TILE*> vTiles;
+dll::HERO* Hero{ nullptr };
+
+dirs field_dir = dirs::stop;
+
+bool need_back_left = false;
+bool need_back_right = false;
+
+bool need_tile_left = false;
+bool need_tile_right = false;
+
+
 //////////////////////////////////////////////////////
 
 template<typename T>concept HasRelease = requires(T check)
@@ -243,7 +260,67 @@ void ErrExit(int what_happened)
 	exit(1);
 }
 
+void GameOver()
+{
+	PlaySound(NULL, NULL, NULL);
+	KillTimer(bHwnd, bTimer);
 
+
+
+	bMsg.message = WM_QUIT;
+	bMsg.wParam = 0;
+}
+void InitGame()
+{
+	wcscpy_s(current_player, L"TARLYO");
+	level = 1;
+	score = 0;
+	mins = 0;
+	secs = 0;
+
+	hero_killed = false;
+	name_set = false;
+
+	need_back_left = false;
+	need_back_right = false;
+
+	need_tile_left = false;
+	need_tile_right = false;
+
+	field_dir = dirs::stop;
+
+	vBackgrounds.clear();
+	for (float t_x = -scr_width; t_x < 2 * scr_width; t_x += scr_width)
+		vBackgrounds.push_back(D2D1::RectF(t_x, 50.0f, scr_width, scr_height));
+
+	if (!vTiles.empty())for (int i = 0; i < vTiles.size(); ++i)FreeMem(&vTiles[i]);
+	vTiles.clear();
+	float tile_x{ -scr_width };
+	for (int i = 0; i < 54; ++i)
+	{
+		tiles temp_type{ static_cast<tiles>(RandIt(0,5)) };
+		if ((temp_type == tiles::trap_axe|| temp_type == tiles::trap_bolt|| temp_type == tiles::trap_spear) 
+			&& RandIt(0, 3) == 1)temp_type = tiles::dirt;
+
+		if (temp_type != tiles::water && temp_type != tiles::dirt_water)
+		{
+			vTiles.push_back(dll::TILE::create(temp_type, tile_x, ground - 50.0f, dirs::stop));
+			tile_x += 50.0f;
+		}
+		else
+		{
+			for (int j = 0; j < 2; ++j)
+			{
+				vTiles.push_back(dll::TILE::create(temp_type, tile_x, ground - 50.0f, dirs::stop));
+				tile_x += 50.0f;
+			}
+		}
+	}
+
+	if (Hero)FreeMem(&Hero);
+	Hero = dll::HERO::create(100.0f, ground - 51.0f);
+
+}
 
 
 

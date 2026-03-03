@@ -311,7 +311,7 @@ void InitGame()
 
 	vBackgrounds.clear();
 	for (float t_x = -scr_width; t_x < 2.0f * scr_width; t_x += scr_width)
-		vBackgrounds.push_back(D2D1::RectF(t_x, 50.0f, scr_width, scr_height));
+		vBackgrounds.push_back(D2D1::RectF(t_x, 50.0f, t_x + scr_width, scr_height));
 
 	if (!vTiles.empty())for (int i = 0; i < vTiles.size(); ++i)FreeMem(&vTiles[i]);
 	vTiles.clear();

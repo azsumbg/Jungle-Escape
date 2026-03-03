@@ -155,6 +155,9 @@ dll::RANDIT RandIt{};
 std::vector<D2D1_RECT_F> vBackgrounds;
 std::vector<dll::TILE*> vTiles;
 std::vector<dll::TILE*> vTrees;
+
+std::vector<dll::PLATFORM*>vPlatforms;
+
 dll::HERO* Hero{ nullptr };
 
 dirs field_dir = dirs::stop;
@@ -315,6 +318,9 @@ void InitGame()
 
 	if (!vTrees.empty())for (int i = 0; i < vTrees.size(); ++i)FreeMem(&vTrees[i]);
 	vTrees.clear();
+
+	if (!vPlatforms.empty())for (int i = 0; i < vPlatforms.size(); ++i)FreeMem(&vPlatforms[i]);
+	vPlatforms.clear();
 
 	if (!vTiles.empty())for (int i = 0; i < vTiles.size(); ++i)FreeMem(&vTiles[i]);
 	vTiles.clear();
@@ -1142,6 +1148,57 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
+		if (vPlatforms.size() < 4 && RandIt(0, 300) == 66)
+		{
+			platforms ttype = static_cast<platforms>(RandIt(0, 2));
+			
+			float t_x = scr_width + RandIt(50.0f, 150.0f);
+			float t_y{ 0 };
+
+			switch (ttype)
+			{
+			case platforms::flat_platform1:
+				t_y = ground - 75.0f;
+				break;
+
+			case platforms::flat_platform2:
+				t_y = ground - 90.0f;
+				break;
+
+			case platforms::high_platform:
+				t_y = ground - 90.0f;
+				break;
+
+			}
+			bool not_permitted = false;
+
+			dll::PLATFORM* temp_tree{ dll::PLATFORM::create(ttype,t_x, t_y,dirs::left) };
+
+			if (!vPlatforms.empty())for (int i = 0; i < vPlatforms.size(); ++i)
+			{
+				FRECT in_tree{ vPlatforms[i]->start.x,vPlatforms[i]->start.y,vPlatforms[i]->end.x,vPlatforms[i]->end.y };
+				FRECT candidate{ temp_tree->start.x,temp_tree->start.y,temp_tree->end.x,temp_tree->end.y };
+				if (dll::Intersect(in_tree, candidate))
+				{
+					not_permitted = true;
+					break;
+				}
+			}
+
+			if (!not_permitted)vPlatforms.push_back(temp_tree);
+		}
+		if (!vPlatforms.empty())
+		{
+			for (std::vector<dll::PLATFORM*>::iterator tree = vPlatforms.begin(); tree < vPlatforms.end(); ++tree)
+			{
+				if (!(*tree)->move(field_dir, (float)(level)))
+				{
+					vPlatforms.erase(tree);
+					break;
+				}
+			}
+		}
+
 
 	/////////////////////////////////////////////////////////////
 
@@ -1362,6 +1419,30 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 		
+		if (!vPlatforms.empty())
+		{
+			for (std::vector<dll::PLATFORM*>::iterator tree = vPlatforms.begin(); tree < vPlatforms.end(); ++tree)
+			{
+				switch ((*tree)->type)
+				{
+				case platforms::flat_platform1:
+					Draw->DrawBitmap(bmpPlatform1, D2D1::RectF((*tree)->start.x, (*tree)->start.y, 
+						(*tree)->end.x, (*tree)->end.y));
+					break;
+
+				case platforms::flat_platform2:
+					Draw->DrawBitmap(bmpPlatform2, D2D1::RectF((*tree)->start.x, (*tree)->start.y,
+						(*tree)->end.x, (*tree)->end.y));
+					break;
+
+				case platforms::high_platform:
+					Draw->DrawBitmap(bmpPlatform3, D2D1::RectF((*tree)->start.x, (*tree)->start.y,
+						(*tree)->end.x, (*tree)->end.y));
+					break;
+				}
+			}
+		}
+
 		if (Hero)
 		{
 			int aframe = Hero->get_frame();

@@ -59,9 +59,9 @@ D2D1_RECT_F b1Rect{ 20.0f, 5.0f, scr_width / 3.0f - 50.0f, 45.0f };
 D2D1_RECT_F b2Rect{ scr_width / 3.0f + 20.0f, 5.0f, scr_width * 2.0f / 3.0f - 50.0f, 45.0f };
 D2D1_RECT_F b3Rect{ scr_width * 2.0f / 3.0f + 20.0f, 5.0f, scr_width - 50.0f, 45.0f };
 
-D2D1_RECT_F b1TxtRect{ 40.0f, 10.0f, scr_width / 3.0f - 50.0f, 45.0f };
-D2D1_RECT_F b2TxtRect{ scr_width / 3.0f + 30.0f, 10.0f, scr_width * 2.0f / 3.0f - 50.0f, 45.0f };
-D2D1_RECT_F b3TxtRect{ scr_width * 2.0f / 3.0f + 25.0f, 10.0f, scr_width - 50.0f, 45.0f };
+D2D1_RECT_F b1TxtRect{ 60.0f, 15.0f, scr_width / 3.0f - 50.0f, 45.0f };
+D2D1_RECT_F b2TxtRect{ scr_width / 3.0f + 60.0f, 15.0f, scr_width * 2.0f / 3.0f - 50.0f, 45.0f };
+D2D1_RECT_F b3TxtRect{ scr_width * 2.0f / 3.0f + 50.0f, 15.0f, scr_width - 50.0f, 45.0f };
 
 bool pause = false;
 bool show_help = false;
@@ -703,7 +703,7 @@ void CreateResources()
 			}
 
 			hr = Draw->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Brown), &statBrush);
-			hr = Draw->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Aqua), &txtBrush);
+			hr = Draw->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Cyan), &txtBrush);
 			hr = Draw->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::NavajoWhite), &hgltBrush);
 			hr = Draw->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::IndianRed), &inactBrush);
 			if (hr != S_OK)
@@ -1102,12 +1102,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		{
 			if (show_help)continue;
 
-			if (bigTxt && txtBrush)
+			if (bigTxt && inactBrush)
 			{
 				Draw->BeginDraw();
 				Draw->DrawBitmap(bmpIntro[GetIntroFrame()], D2D1::RectF(0, 0, scr_width, scr_height));
 				Draw->DrawTextW(L"ПАУЗА", 6, bigTxt, D2D1::RectF(scr_width / 2.0f - 100.0f, scr_height / 2.0f - 50.0f,
-					scr_width, scr_height), txtBrush);
+					scr_width, scr_height), inactBrush);
 				Draw->EndDraw();
 				continue;
 			}

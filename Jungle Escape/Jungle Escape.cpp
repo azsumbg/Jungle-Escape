@@ -167,7 +167,6 @@ bool need_tile_right = false;
 D2D1_RECT_F House{ scr_width, ground - 150.0f, scr_width + 147.0f, ground };
 bool house_active = false;
 
-
 //////////////////////////////////////////////////////
 
 template<typename T>concept HasRelease = requires(T check)
@@ -319,13 +318,13 @@ void InitGame()
 	for (int i = 0; i < 54; ++i)
 	{
 		tiles temp_type{ tiles::dirt };
-		int trouble = RandIt(0, 30);
+		int trouble = RandIt(0, 100);
 
-		if (trouble == 1)temp_type = tiles::water;
-		else if (trouble == 18)temp_type = tiles::dirt_water;
+		if (trouble == 51)temp_type = tiles::water;
+		else if (trouble == 78)temp_type = tiles::dirt_water;
 		else if (trouble == 11)temp_type = tiles::trap_axe;
-		else if (trouble == 30)temp_type = tiles::trap_bolt;
-		else if (trouble == 22)temp_type = tiles::trap_spear;
+		else if (trouble == 66)temp_type = tiles::trap_bolt;
+		else if (trouble == 33)temp_type = tiles::trap_spear;
 
 		if (temp_type != tiles::water && temp_type != tiles::dirt_water)
 		{
@@ -1152,16 +1151,81 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		if (need_back_left)
 		{
 			need_back_left = false;
-			vBackgrounds.insert(vBackgrounds.begin(), D2D1::RectF(-scr_width, 50.0f, scr_width, scr_height));
+			vBackgrounds.insert(vBackgrounds.begin(), D2D1::RectF(-scr_width, 50.0f, 0, scr_height));
 		}
 		if (need_back_right)
 		{
 			need_back_right = false;
 			vBackgrounds.push_back(D2D1::RectF(scr_width, 50.0, 2.0f * scr_width, scr_height));
 		}
+		if (!vTiles.empty())
+		{
+			for (std::vector<dll::TILE*>::iterator atile = vTiles.begin(); atile < vTiles.end(); ++atile)
+			{	
+				if (!(*atile)->move(field_dir, (float)(level)))
+				{
+					vTiles.erase(atile);
+					switch (field_dir)
+					{
+					case dirs::left:
+						need_tile_right = true;
+						break;
 
+					case dirs::right:
+						need_tile_left = true;
+						break;
+					}
 
+					break;
+				}
+			}
+		}
+		if (need_tile_left)
+		{
+			need_tile_left = false;
 
+			tiles temp_type{ tiles::dirt };
+			int trouble = RandIt(0, 100);
+
+			if (trouble == 51)temp_type = tiles::water;
+			else if (trouble == 78)temp_type = tiles::dirt_water;
+			else if (trouble == 11)temp_type = tiles::trap_axe;
+			else if (trouble == 66)temp_type = tiles::trap_bolt;
+			else if (trouble == 33)temp_type = tiles::trap_spear;
+
+			if (temp_type != tiles::water && temp_type != tiles::dirt_water)
+				vTiles.insert(vTiles.begin(), dll::TILE::create(temp_type, -scr_width, ground, dirs::right));
+			else
+			{
+				for (int j = 0; j < 2; ++j)
+				{
+					vTiles.insert(vTiles.begin(), dll::TILE::create(temp_type, -scr_width - 50.0f * j, ground, dirs::right));
+				}
+			}
+		}
+		if (need_tile_right)
+		{
+			need_tile_right = false;
+
+			tiles temp_type{ tiles::dirt };
+			int trouble = RandIt(0, 100);
+
+			if (trouble == 51)temp_type = tiles::water;
+			else if (trouble == 78)temp_type = tiles::dirt_water;
+			else if (trouble == 11)temp_type = tiles::trap_axe;
+			else if (trouble == 66)temp_type = tiles::trap_bolt;
+			else if (trouble == 33)temp_type = tiles::trap_spear;
+
+			if (temp_type != tiles::water && temp_type != tiles::dirt_water)
+				vTiles.push_back(dll::TILE::create(temp_type, 2.0f * scr_width, ground, dirs::left));
+			else
+			{
+				for (int j = 0; j < 2; ++j)
+				{
+					vTiles.push_back(dll::TILE::create(temp_type, 2.0f * scr_width + 50.0f * j, ground, dirs::left));
+				}
+			}
+		}
 
 
 

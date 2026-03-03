@@ -1461,6 +1461,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				Draw->DrawBitmap(bmpHeroR[aframe], Resizer(bmpHeroR[aframe], Hero->start.x, Hero->start.y));
 				break;
 			}
+
+			Draw->DrawLine(D2D1::Point2F(Hero->start.x - 5.0f, Hero->start.y - 8.0f),
+				D2D1::Point2F(Hero->start.x + (float)(Hero->lifes / 2), Hero->start.y - 8.0f), txtBrush, 5.0f);
 		}
 
 		if (!vTrees.empty())

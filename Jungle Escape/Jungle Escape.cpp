@@ -154,6 +154,7 @@ dll::RANDIT RandIt{};
 
 std::vector<D2D1_RECT_F> vBackgrounds;
 std::vector<dll::TILE*> vTiles;
+std::vector<dll::TILE*> vTrees;
 dll::HERO* Hero{ nullptr };
 
 dirs field_dir = dirs::stop;
@@ -311,6 +312,9 @@ void InitGame()
 	vBackgrounds.clear();
 	for (float t_x = -scr_width; t_x < 2.0f * scr_width; t_x += scr_width)
 		vBackgrounds.push_back(D2D1::RectF(t_x, 50.0f, t_x + scr_width, scr_height));
+
+	if (!vTrees.empty())for (int i = 0; i < vTrees.size(); ++i)FreeMem(&vTrees[i]);
+	vTrees.clear();
 
 	if (!vTiles.empty())for (int i = 0; i < vTiles.size(); ++i)FreeMem(&vTiles[i]);
 	vTiles.clear();
@@ -1105,6 +1109,42 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	//////////////////////////////////////////////////////////////
 
+		if (vTrees.size() < 10 && RandIt(0, 100) == 66)
+		{
+			tiles ttype = static_cast<tiles>(RandIt(6, 8));
+			float t_x = scr_width + RandIt(50.0f, 150.0f);
+			bool not_permitted = false;
+
+			dll::TILE* temp_tree{ dll::TILE::create(ttype,t_x,ground - 50.0f,dirs::left) };
+
+			if (!vTrees.empty())for (int i = 0; i < vTrees.size(); ++i)
+			{
+				FRECT in_tree{ vTrees[i]->start.x,vTrees[i]->start.y,vTrees[i]->end.x,vTrees[i]->end.y };
+				FRECT candidate{ temp_tree->start.x,temp_tree->start.y,temp_tree->end.x,temp_tree->end.y };
+				if (dll::Intersect(in_tree, candidate))
+				{
+					not_permitted = true;
+					break;
+				}
+			}
+		
+			if (!not_permitted)vTrees.push_back(temp_tree);
+		}
+		if (!vTrees.empty())
+		{
+			for (std::vector<dll::TILE*>::iterator tree = vTrees.begin(); tree < vTrees.end(); ++tree)
+			{
+				if (!(*tree)->move(field_dir, (float)(level)))
+				{
+					vTrees.erase(tree);
+					break;
+				}
+			}
+		}
+
+
+	/////////////////////////////////////////////////////////////
+
 		if (Hero)
 		{
 			switch (Hero->dir)
@@ -1242,6 +1282,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
+	//////////////////////////////////////////////////////////////
+
+
+
+
+
+
 
 
 
@@ -1335,8 +1382,26 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
+		if (!vTrees.empty())
+		{
+			for (std::vector<dll::TILE*>::iterator tree = vTrees.begin(); tree < vTrees.end(); ++tree)
+			{
+				switch ((*tree)->type)
+				{
+				case tiles::tree1:
+					Draw->DrawBitmap(bmpTree1, D2D1::RectF((*tree)->start.x, (*tree)->start.y, (*tree)->end.x, (*tree)->end.y));
+					break;
 
+				case tiles::tree2:
+					Draw->DrawBitmap(bmpTree2, D2D1::RectF((*tree)->start.x, (*tree)->start.y, (*tree)->end.x, (*tree)->end.y));
+					break;
 
+				case tiles::tree3:
+					Draw->DrawBitmap(bmpTree1, D2D1::RectF((*tree)->start.x, (*tree)->start.y, (*tree)->end.x, (*tree)->end.y));
+					break;
+				}
+			}
+		}
 
 
 

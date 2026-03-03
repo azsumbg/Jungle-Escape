@@ -1341,7 +1341,35 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	//////////////////////////////////////////////////////////////
 
+		if (Hero && !vPlatforms.empty())
+		{
+			if (Hero->in_jump || Hero->state == FALLING)
+			{
+				FRECT heroR{ Hero->start.x,Hero->start.y,Hero->end.x,Hero->end.y };
 
+				for (std::vector<dll::PLATFORM*>::iterator plat = vPlatforms.begin(); plat < vPlatforms.end(); ++plat)
+				{
+					FRECT platR{ (*plat)->start.x,(*plat)->start.y, (*plat)->end.x,(*plat)->end.y };
+
+					if (dll::Intersect(heroR, platR))Hero->set_platform(platR);
+				}
+			}
+		}
+
+		if (Hero)
+		{
+			if (Hero->on_platform)
+			{
+				FRECT HeroR{ Hero->start.x,Hero->start.y,Hero->end.x,Hero->end.y };
+
+				if (!dll::Intersect(HeroR, Hero->platform))
+				{
+					Hero->state = FALLING;
+					Hero->on_platform = false;
+					Hero->fall((float)(level));
+				}
+			}
+		}
 
 
 

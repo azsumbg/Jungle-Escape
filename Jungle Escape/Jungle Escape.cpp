@@ -590,7 +590,7 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 				break;
 
 			case VK_UP:
-				if (Hero->in_jump)break;
+				if (Hero->in_jump || Hero->state == FALLING)break;
 				Hero->jump((float)(level));
 				break;
 			}

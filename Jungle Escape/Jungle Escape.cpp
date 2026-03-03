@@ -578,6 +578,11 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 			case VK_LEFT:
 				Hero->dir = dirs::left;
 				break;
+
+			case VK_UP:
+				if (Hero->in_jump)break;
+				Hero->jump((float)(level));
+				break;
 			}
 		}
 		break;
@@ -1116,6 +1121,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				field_dir = dirs::stop;
 				break;
 			}
+
+			if (Hero->in_jump)
+			{
+				Hero->jump((float)(level));
+				if (Hero->state == FALLING)Hero->fall((float)(level));
+			}
+			
+			if (Hero->state == FALLING)Hero->fall((float)(level));
+			
+			
 		}
 		if (!vBackgrounds.empty())
 		{
@@ -1226,7 +1241,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					vTiles.push_back(dll::TILE::create(temp_type, vTiles.back()->end.x, ground, dirs::left));
 			}
 		}
-
 
 
 

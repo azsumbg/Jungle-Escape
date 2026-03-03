@@ -531,7 +531,7 @@ namespace dll
 	class JUNGLE_API HERO :public PROTON
 	{
 	private:
-		float _speed = 0.3f;
+		float _speed = 0.1f;
 
 		float jump_sx{ 0 };
 		float jump_ex{ 0 };

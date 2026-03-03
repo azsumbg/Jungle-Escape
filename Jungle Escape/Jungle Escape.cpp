@@ -1224,10 +1224,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				Hero->jump((float)(level));
 				if (Hero->state == FALLING)Hero->fall((float)(level));
 			}
-			
-			if (Hero->state == FALLING)Hero->fall((float)(level));
-			
-			
+			else if (Hero->state == FALLING)Hero->fall((float)(level));
+			else Hero->move((float)(level));			
 		}
 		if (!vBackgrounds.empty())
 		{
@@ -1345,14 +1343,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		{
 			if (Hero->in_jump || Hero->state == FALLING)
 			{
-				FRECT heroR{ Hero->start.x,Hero->start.y,Hero->end.x,Hero->end.y };
+				FRECT heroR{ Hero->start.x,Hero->start.y, Hero->end.x, Hero->end.y };
 
 				for (std::vector<dll::PLATFORM*>::iterator plat = vPlatforms.begin(); plat < vPlatforms.end(); ++plat)
 				{
 					FRECT platR{ (*plat)->start.x,(*plat)->start.y, (*plat)->end.x,(*plat)->end.y };
 
-					if (dll::Intersect(heroR, platR))Hero->set_platform(platR);
+					if (dll::Intersect(heroR, platR))
+					{
+						Hero->set_platform(platR);
+						break;
+					}
 				}
+			
 			}
 		}
 
@@ -1360,13 +1363,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		{
 			if (Hero->on_platform)
 			{
-				FRECT HeroR{ Hero->start.x,Hero->start.y,Hero->end.x,Hero->end.y };
+				FRECT HeroR{ Hero->start.x,Hero->start.y,Hero->end.x, Hero->end.y };
 
 				if (!dll::Intersect(HeroR, Hero->platform))
 				{
 					Hero->state = FALLING;
 					Hero->on_platform = false;
-					Hero->fall((float)(level));
+					Hero->in_jump = false;
 				}
 			}
 		}

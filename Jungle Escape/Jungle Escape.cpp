@@ -326,6 +326,8 @@ void InitGame()
 		else if (trouble == 66)temp_type = tiles::trap_bolt;
 		else if (trouble == 33)temp_type = tiles::trap_spear;
 
+		if (tile_x >= 100.0f && tile_x <= 200.0f)temp_type = tiles::dirt;
+
 		if (temp_type != tiles::water && temp_type != tiles::dirt_water)
 		{
 			vTiles.push_back(dll::TILE::create(temp_type, tile_x, ground, dirs::stop));
@@ -1194,13 +1196,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			else if (trouble == 33)temp_type = tiles::trap_spear;
 
 			if (temp_type != tiles::water && temp_type != tiles::dirt_water)
-				vTiles.insert(vTiles.begin(), dll::TILE::create(temp_type, -scr_width, ground, dirs::right));
+				vTiles.insert(vTiles.begin(), dll::TILE::create(temp_type, vTiles.front()->start.x - 50.0f,
+					ground, dirs::right));
 			else
 			{
-				for (int j = 0; j < 2; ++j)
-				{
-					vTiles.insert(vTiles.begin(), dll::TILE::create(temp_type, -scr_width - 50.0f * j, ground, dirs::right));
-				}
+				for (int i = 0; i < 2; ++i)
+					vTiles.insert(vTiles.begin(), dll::TILE::create(temp_type, vTiles.front()->start.x - 50.0f,
+						ground, dirs::right));
 			}
 		}
 		if (need_tile_right)
@@ -1217,13 +1219,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			else if (trouble == 33)temp_type = tiles::trap_spear;
 
 			if (temp_type != tiles::water && temp_type != tiles::dirt_water)
-				vTiles.push_back(dll::TILE::create(temp_type, 2.0f * scr_width, ground, dirs::left));
+				vTiles.push_back(dll::TILE::create(temp_type, vTiles.back()->end.x, ground, dirs::left));
 			else
 			{
-				for (int j = 0; j < 2; ++j)
-				{
-					vTiles.push_back(dll::TILE::create(temp_type, 2.0f * scr_width + 50.0f * j, ground, dirs::left));
-				}
+				for (int i = 0; i < 2; ++i)
+					vTiles.push_back(dll::TILE::create(temp_type, vTiles.back()->end.x, ground, dirs::left));
 			}
 		}
 

@@ -1539,7 +1539,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		{
 			assets temp_type{ static_cast<assets>(RandIt(0,3)) };
 			float tx = scr_width + RandIt(0.0f, 100.0f);
-			assets::
 
 			vAssets.push_back(dll::ASSET::create(temp_type, tx, ground - 32.0f, dirs::left));
 		}

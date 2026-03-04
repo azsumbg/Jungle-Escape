@@ -349,7 +349,7 @@ void InitGame()
 		else if (trouble == 66)temp_type = tiles::trap_bolt;
 		else if (trouble == 33)temp_type = tiles::trap_spear;
 
-		if (tile_x >= 100.0f && tile_x <= 200.0f)temp_type = tiles::dirt;
+		if (tile_x >= 0 && tile_x <= 200.0f)temp_type = tiles::dirt;
 
 		if (temp_type != tiles::water && temp_type != tiles::dirt_water)
 		{
@@ -369,6 +369,7 @@ void InitGame()
 	if (Hero)FreeMem(&Hero);
 	Hero = dll::HERO::create(100.0f, ground - 51.0f);
 
+	
 }
 
 INT_PTR CALLBACK DlgProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lParam)
@@ -1126,7 +1127,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
-	//////////////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////
 
 		if (vTrees.size() < 10 && RandIt(0, 100) == 66)
 		{
@@ -1146,7 +1147,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					break;
 				}
 			}
-		
+
 			if (!not_permitted)vTrees.push_back(temp_tree);
 		}
 		if (!vTrees.empty())
@@ -1164,7 +1165,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		if (vPlatforms.size() < 4 && RandIt(0, 300) == 66)
 		{
 			platforms ttype = static_cast<platforms>(RandIt(0, 2));
-			
+
 			float t_x = scr_width + RandIt(50.0f, 150.0f);
 			float t_y{ 0 };
 
@@ -1213,7 +1214,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		}
 
 
-	/////////////////////////////////////////////////////////////
+		/////////////////////////////////////////////////////////////
 
 		if (Hero)
 		{
@@ -1238,7 +1239,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				if (Hero->state == FALLING)Hero->fall((float)(level));
 			}
 			else if (Hero->state == FALLING)Hero->fall((float)(level));
-			else Hero->move((float)(level));			
+			else Hero->move((float)(level));
 		}
 		if (!vBackgrounds.empty())
 		{
@@ -1286,7 +1287,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		if (!vTiles.empty())
 		{
 			for (std::vector<dll::TILE*>::iterator atile = vTiles.begin(); atile < vTiles.end(); ++atile)
-			{	
+			{
 				if (!(*atile)->move(field_dir, (float)(level)))
 				{
 					vTiles.erase(atile);
@@ -1350,7 +1351,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
-	//////////////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////
 
 		if (Hero && !vPlatforms.empty())
 		{
@@ -1368,7 +1369,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 						break;
 					}
 				}
-			
+
 			}
 		}
 
@@ -1422,7 +1423,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			{
 				for (int i = 0; i < vTiles.size(); ++i)
 				{
-					if (vTiles[i]->type == tiles::water || vTiles[i]->type == tiles::dirt_water)
+					if (vTiles[i]->type != tiles::dirt)
 						obstBag.push_back(vTiles[i]->center);
 				}
 			}
@@ -1430,10 +1431,35 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			for (int i = 0; i < vEvils.size(); ++i)
 			{
 				dll::EVIL* anEvil{ vEvils[i] };
-				
-				bool evil_gone = false;
 
 				switch (dll::AIDispatcher(*anEvil, Hero->center, tomahawkBag, obstBag))
+				{
+				case RUN:
+					vEvils[i]->state = RUN;
+					break;
+
+				case FALLING:
+					vEvils[i]->state = FALLING;
+					break;
+
+				case JUMP_UP:
+					if (!vEvils[i]->in_jump)vEvils[i]->jump((float)(level));
+					break;
+
+				case SHOOT:
+					vEvils[i]->state = SHOOT;
+					break;
+				}
+			}
+		}
+
+		if (!vEvils.empty())
+		{
+			for (int i = 0; i < vEvils.size(); ++i)
+			{
+				bool evil_gone = false;
+
+				switch (vEvils[i]->state)
 				{
 				case RUN:
 					if (!vEvils[i]->move((float)(level)))
@@ -1452,28 +1478,42 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					vEvils[i]->jump((float)(level));
 					break;
 
-				case SHOOT:
-					{
-						int ready = vEvils[i]->attack();
-
-						if (ready > 0)
-						{
-							vArrows.push_back(dll::SHOT::create(shots::arrow, anEvil->start.x, anEvil->start.y,
-								Hero->center.x, Hero->center.y));
-							vArrows.back()->damage = ready;
-							if (Hero->center.x >= anEvil->center.x)vArrows.back()->dir = dirs::right;
-							else vArrows.back()->dir = dirs::left;
-						}
-					}
+				case JUMP_DOWN:
+					vEvils[i]->jump((float)(level));
 					break;
+
+				case SHOOT:
+				{
+					int ready = vEvils[i]->attack();
+					if (ready > 0)
+					{
+						vArrows.push_back(dll::SHOT::create(shots::arrow, vEvils[i]->start.x, vEvils[i]->start.y,
+							Hero->center.x, Hero->center.y));
+						vArrows.back()->damage = ready;
+						if (Hero->center.x >= vEvils[i]->center.x)vArrows.back()->dir = dirs::right;
+						else vArrows.back()->dir = dirs::left;
+					}
+				}
+				break;
+				
 				}
 
 				if (evil_gone)break;
 			}
 		}
 
-
-
+		if (!vArrows.empty())
+		{
+			for (int i = 0; i < vArrows.size(); ++i)
+			{
+				if (!vArrows[i]->move((float)(level)))
+				{
+					vArrows.erase(vArrows.begin() + i);
+					break;
+				}
+			}
+		}
+	
 
 	// DRAW THINGS ***********************************************
 

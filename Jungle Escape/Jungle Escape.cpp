@@ -633,8 +633,6 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 		}
 		break;
 
-
-
 	default: return DefWindowProc(hwnd, ReceivedMsg, wParam, lParam);
 	}
 
@@ -1556,6 +1554,46 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 		
+		if (Hero && !vArrows.empty())
+		{
+			for (std::vector<dll::SHOT*>::iterator shot = vArrows.begin(); shot < vArrows.end(); ++shot)
+			{
+				if (dll::Intersect(Hero->center, (*shot)->center, Hero->x_rad, (*shot)->x_rad,
+					Hero->y_rad, (*shot)->y_rad))
+				{
+					Hero->lifes -= (*shot)->damage;
+					if (Hero->lifes <= 0)
+					{
+						hero_killed = true;
+						hero_tomb = Hero->center;
+						FreeMem(&Hero);
+					}
+
+					vArrows.erase(shot);
+					break;
+				}
+			}
+		}
+
+		if (Hero && !vEvils.empty())
+		{
+			for (std::vector<dll::EVIL*>::iterator evil = vEvils.begin(); evil < vEvils.end(); ++evil)
+			{
+				if (dll::Intersect(Hero->center, (*evil)->center, Hero->x_rad, (*evil)->x_rad,
+					Hero->y_rad, (*evil)->y_rad))
+				{
+					Hero->lifes -= (*evil)->attack();
+					if (Hero->lifes <= 0)
+					{
+						hero_killed = true;
+						hero_tomb = Hero->center;
+						FreeMem(&Hero);
+					}
+					break;
+				}
+			}
+		}
+		
 		if (!vArrows.empty())
 		{
 			for (int i = 0; i < vArrows.size(); ++i)
@@ -1789,6 +1827,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	//////////////////////////////////////////////////////////////
 
 		Draw->EndDraw();
+
+		if (hero_killed)
+		{
+			Draw->BeginDraw();
+			Draw->DrawBitmap(bmpRIP, D2D1::RectF(hero_tomb.x, hero_tomb.y, hero_tomb.x + 43.0f, hero_tomb.y + 50.0f));
+			Draw->EndDraw();
+
+			if (sound)
+			{
+				PlaySound(NULL, NULL, NULL);
+				PlaySound(L".\\res\\snd\\killed.wav", NULL, SND_SYNC);
+			}
+			else Sleep(3500);
+
+			GameOver();
+		}
 
 	}
 

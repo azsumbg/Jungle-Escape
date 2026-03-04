@@ -1130,6 +1130,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	CreateResources();
 
+	PlaySound(sound_file, NULL, SND_ASYNC | SND_LOOP);
+
 	while (bMsg.message != WM_QUIT)
 	{
 		if ((bRet = PeekMessage(&bMsg, NULL, NULL, NULL, PM_REMOVE)) != 0)
@@ -1533,10 +1535,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
-		if (vAssets.size() < 3 && RandIt(0, 50) == 6)
+		if (vAssets.size() < 3 && RandIt(0, 200) == 66)
 		{
-			assets temp_type{ static_cast<assets>(0,3) };
+			assets temp_type{ static_cast<assets>(RandIt(0,3)) };
 			float tx = scr_width + RandIt(0.0f, 100.0f);
+			assets::
 
 			vAssets.push_back(dll::ASSET::create(temp_type, tx, ground - 32.0f, dirs::left));
 		}
@@ -1575,7 +1578,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 						break;
 
 					case assets::crystal:
-						if (RandIt(0, 10) == 6)
+						if (RandIt(0, 50) == 6)
 						{
 							if (sound)mciSendString(L"play .\\res\\snd\\weapon.wav", NULL, NULL, NULL);
 							Hero->strenght++;
@@ -1588,7 +1591,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 						break;
 
 					case assets::chest:
-						if (RandIt(0, 10) == 6 && Hero->armor < 10)
+						if (RandIt(0, 50) == 6 && Hero->armor < 10)
 						{
 							Hero->armor++;
 							if (sound)mciSendString(L"play .\\res\\snd\\armor.wav", NULL, NULL, NULL);
@@ -1601,6 +1604,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 						}
 						break;
 					}
+
+					(*asset)->Release();
+					vAssets.erase(asset);
+					break;
 				}
 			}
 		}

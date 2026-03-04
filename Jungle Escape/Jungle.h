@@ -36,7 +36,7 @@ enum class tiles {
 enum class platforms { flat_platform1 = 0, flat_platform2 = 1, high_platform = 2 };
 enum class shots { arrow = 0, tomahawk = 1 };
 enum class evils { flyer = 0, mushroom = 1, snail = 2, octopus = 3 };
-
+enum class assets { potion = 0, gold = 1, crystal = 2, chest = 3 };
 
 struct FPOINT
 {
@@ -523,6 +523,24 @@ namespace dll
 		static PLATFORM* create(platforms type, float where_x, float where_y, dirs dir);
 	};
 
+	class JUNGLE_API ASSET :public PROTON
+	{
+	private:
+		float _speed{ 1.0f };
+
+		ASSET(assets _type, float _where_x, float _where_y, dirs _dir);
+
+	public:
+		assets type{ assets::gold };
+		dirs dir = dirs::stop;
+
+		bool move(dirs to_where, float gear);
+
+		void Release();
+
+		static ASSET* create(assets type, float where_x, float where_y, dirs dir);
+	};
+
 	class JUNGLE_API HERO :public PROTON
 	{
 	private:
@@ -549,7 +567,7 @@ namespace dll
 
 		int lifes{ 100 };
 		int strenght{ 50 };
-		int shield{ 5 };
+		int armor{ 1 };
 
 		void move(float gear);
 		void jump(float gear);

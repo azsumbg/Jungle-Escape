@@ -162,6 +162,8 @@ std::vector<dll::EVIL*>vEvils;
 std::vector<dll::SHOT*>vTomahawks;
 std::vector<dll::SHOT*>vArrows;
 
+std::vector<dll::ASSET*>vAssets;
+
 dll::HERO* Hero{ nullptr };
 FPOINT hero_tomb{};
 
@@ -323,6 +325,9 @@ void InitGame()
 
 	if (!vTrees.empty())for (int i = 0; i < vTrees.size(); ++i)FreeMem(&vTrees[i]);
 	vTrees.clear();
+
+	if (!vAssets.empty())for (int i = 0; i < vAssets.size(); ++i)FreeMem(&vAssets[i]);
+	vAssets.clear();
 
 	if (!vPlatforms.empty())for (int i = 0; i < vPlatforms.size(); ++i)FreeMem(&vPlatforms[i]);
 	vPlatforms.clear();
@@ -1528,6 +1533,27 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
+		if (vAssets.size() < 3 && RandIt(0, 50) == 6)
+		{
+			assets temp_type{ static_cast<assets>(0,3) };
+			float tx = scr_width + RandIt(0.0f, 100.0f);
+
+			vAssets.push_back(dll::ASSET::create(temp_type, tx, ground - 32.0f, dirs::left));
+		}
+
+		if (!vAssets.empty())
+		{
+			for (std::vector<dll::ASSET*>::iterator asset = vAssets.begin(); asset < vAssets.end(); ++asset)
+			{
+				if (!(*asset)->move(field_dir, (float)(level)))
+				{
+					(*asset)->Release();
+					vAssets.erase(asset);
+					break;
+				}
+			}
+		}
+		
 		////////////////////////////////////////////////////////////
 		
 		// BATTLE *****************************
@@ -1571,7 +1597,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				if (dll::Intersect(Hero->center, (*shot)->center, Hero->x_rad, (*shot)->x_rad,
 					Hero->y_rad, (*shot)->y_rad))
 				{
-					Hero->lifes -= (*shot)->damage;
+					Hero->lifes -= ((*shot)->damage - Hero->armor);
 					if (sound)mciSendString(L"play .\\res\\snd\\hurt.wav", NULL, NULL, NULL);
 					if (Hero->lifes <= 0)
 					{
@@ -1593,7 +1619,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				if (dll::Intersect(Hero->center, (*evil)->center, Hero->x_rad, (*evil)->x_rad,
 					Hero->y_rad, (*evil)->y_rad))
 				{
-					Hero->lifes -= (*evil)->attack();
+					Hero->lifes -= ((*evil)->attack() - -Hero->armor);
 					if (sound)mciSendString(L"play .\\res\\snd\\hurt.wav", NULL, NULL, NULL);
 					if (Hero->lifes <= 0)
 					{
@@ -1641,7 +1667,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					if (dll::Intersect(Hero->center, vTiles[i]->center, Hero->x_rad, vTiles[i]->x_rad,
 						Hero->y_rad, vTiles[i]->y_rad))
 					{
-						Hero->lifes -= 30;
+						Hero->lifes -= (30 - Hero->armor);
 						if (sound)mciSendString(L"play .\\res\\snd\\hurt.wav", NULL, NULL, NULL);
 						if (Hero->lifes <= 0)
 						{
@@ -1843,6 +1869,35 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				}
 				else if (anEvil->type == evils::octopus)
 					Draw->DrawBitmap(bmpOctopus[aframe], Resizer(bmpOctopus[aframe], anEvil->start.x, anEvil->start.y));
+			}
+		}
+
+		if (!vAssets.empty())
+		{
+			for (int i = 0; i < vAssets.size(); ++i)
+			{
+				switch (vAssets[i]->type)
+				{
+				case assets::potion:
+					Draw->DrawBitmap(bmpPotion, D2D1::RectF(vAssets[i]->start.x, vAssets[i]->start.y,
+						vAssets[i]->end.x, vAssets[i]->end.y));
+					break;
+
+				case assets::gold:
+					Draw->DrawBitmap(bmpGold, D2D1::RectF(vAssets[i]->start.x, vAssets[i]->start.y,
+						vAssets[i]->end.x, vAssets[i]->end.y));
+					break;
+
+				case assets::crystal:
+					Draw->DrawBitmap(bmpCrystal, D2D1::RectF(vAssets[i]->start.x, vAssets[i]->start.y,
+						vAssets[i]->end.x, vAssets[i]->end.y));
+					break;
+
+				case assets::chest:
+					Draw->DrawBitmap(bmpChest, D2D1::RectF(vAssets[i]->start.x, vAssets[i]->start.y,
+						vAssets[i]->end.x, vAssets[i]->end.y));
+					break;
+				}
 			}
 		}
 

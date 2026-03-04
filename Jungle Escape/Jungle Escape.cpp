@@ -627,6 +627,8 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 					vTomahawks.back()->damage = Hero->strenght;
 					if (evil[0].x >= Hero->center.x)vTomahawks.back()->dir = dirs::right;
 					else vTomahawks.back()->dir = dirs::left;
+					if (sound)mciSendString(L"play .\\res\\snd\\shot.wav", NULL, NULL, NULL);
+
 				}
 				else if (sound)mciSendString(L"play .\\res\\snd\\negative.wav", NULL, NULL, NULL);
 			}
@@ -1484,6 +1486,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					if (!vEvils[i]->move((float)(level)))
 					{
 						evil_gone = true;
+						vEvils[i]->Release();
 						vEvils.erase(vEvils.begin() + i);
 						break;
 					}
@@ -1503,6 +1506,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 				case SHOOT:
 				{
+					if (sound)mciSendString(L"play .\\res\\snd\\shot.wav", NULL, NULL, NULL);
 					int ready = vEvils[i]->attack();
 					if (ready > 0)
 					{
@@ -1537,10 +1541,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 						(*evil)->y_rad, (*shot)->y_rad))
 					{
 						(*evil)->lifes -= (*shot)->damage;
+						if (sound)mciSendString(L"play .\\res\\snd\\evil_hurt.wav", NULL, NULL, NULL);
+						(*shot)->Release();
 						vTomahawks.erase(shot);
 
 						if ((*evil)->lifes <= 0)
 						{
+							(*evil)->Release();
 							vEvils.erase(evil);
 							score += 3 * level;
 							killed = true;
@@ -1562,13 +1569,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					Hero->y_rad, (*shot)->y_rad))
 				{
 					Hero->lifes -= (*shot)->damage;
+					if (sound)mciSendString(L"play .\\res\\snd\\hurt.wav", NULL, NULL, NULL);
 					if (Hero->lifes <= 0)
 					{
 						hero_killed = true;
 						hero_tomb = Hero->center;
 						FreeMem(&Hero);
 					}
-
+					(*shot)->Release();
 					vArrows.erase(shot);
 					break;
 				}
@@ -1583,6 +1591,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					Hero->y_rad, (*evil)->y_rad))
 				{
 					Hero->lifes -= (*evil)->attack();
+					if (sound)mciSendString(L"play .\\res\\snd\\hurt.wav", NULL, NULL, NULL);
 					if (Hero->lifes <= 0)
 					{
 						hero_killed = true;
@@ -1600,6 +1609,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			{
 				if (!vArrows[i]->move((float)(level)))
 				{
+					vArrows[i]->Release();
 					vArrows.erase(vArrows.begin() + i);
 					break;
 				}
@@ -1612,9 +1622,63 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			{
 				if (!vTomahawks[i]->move((float)(level)))
 				{
+					vTomahawks[i]->Release();
 					vTomahawks.erase(vTomahawks.begin() + i);
 					break;
 				}
+			}
+		}
+
+		if (!vTiles.empty() && Hero)
+		{
+			for (int i = 0; i < vTiles.size(); ++i)
+			{
+				if (vTiles[i]->type != tiles::dirt)
+				{
+					if (dll::Intersect(Hero->center, vTiles[i]->center, Hero->x_rad, vTiles[i]->x_rad,
+						Hero->y_rad, vTiles[i]->y_rad))
+					{
+						Hero->lifes -= 30;
+						if (sound)mciSendString(L"play .\\res\\snd\\hurt.wav", NULL, NULL, NULL);
+						if (Hero->lifes <= 0)
+						{
+							hero_killed = true;
+							hero_tomb = Hero->center;
+							FreeMem(&Hero);
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		if (!vTiles.empty() && !vEvils.empty())
+		{
+			for (int i = 0; i < vTiles.size(); ++i)
+			{
+				bool killed = false;
+
+				if (vTiles[i]->type != tiles::dirt)
+				{
+					for (std::vector<dll::EVIL*>::iterator evil = vEvils.begin(); evil < vEvils.end(); ++evil)
+					{
+
+						if (dll::Intersect((*evil)->center, vTiles[i]->center, (*evil)->x_rad, vTiles[i]->x_rad,
+							(*evil)->y_rad, (*evil)->y_rad))
+						{
+							(*evil)->lifes -= 30;
+							if (sound)mciSendString(L"play .\\res\\snd\\evil_hurt.wav", NULL, NULL, NULL);
+							if ((*evil)->lifes <= 0)
+							{
+								killed = true;
+								(*evil)->Release();
+								vEvils.erase(evil);
+							}
+							break;
+						}
+					}
+				}
+				if (killed)break;
 			}
 		}
 

@@ -1387,7 +1387,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
-		if (vEvils.size() > 5 + level)
+		if (vEvils.size() < 5 + level && RandIt(0, 100) == 6)
 		{
 			evils temp_type{ static_cast<evils>(RandIt(0, 3)) };
 			float temp_y = 0;
@@ -1396,7 +1396,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			case evils::flyer:
 				temp_y = ground - 43.0f;
 				break;
-			
+
 			case evils::mushroom:
 				temp_y = ground - 41.0f;
 				break;
@@ -1414,13 +1414,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 		if (!vEvils.empty() && Hero)
 		{
+			dll::BAG<FPOINT> tomahawkBag;
+			dll::BAG<FPOINT> obstBag;
+
+			if (!vTomahawks.empty())for (int i = 0; i < vTomahawks.size(); ++i)tomahawkBag.push_back(vTomahawks[i]->center);
+			if (!vTiles.empty())
+			{
+				for (int i = 0; i < vTiles.size(); ++i)
+				{
+					if (vTiles[i]->type == tiles::water || vTiles[i]->type == tiles::dirt_water)
+						obstBag.push_back(vTiles[i]->center);
+				}
+			}
+
 			for (int i = 0; i < vEvils.size(); ++i)
 			{
 				dll::EVIL* anEvil{ vEvils[i] };
 				
-				dll::BAG<FPOINT> tomahawkBag(vTomahawks.size());
-				dll::BAG<FPOINT> obstBag(vTiles.size());
-
 				bool evil_gone = false;
 
 				switch (dll::AIDispatcher(*anEvil, Hero->center, tomahawkBag, obstBag))
@@ -1429,6 +1439,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					if (!vEvils[i]->move((float)(level)))
 					{
 						evil_gone = true;
+						vEvils.erase(vEvils.begin() + i);
 						break;
 					}
 					break;

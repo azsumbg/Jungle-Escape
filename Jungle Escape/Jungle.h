@@ -63,7 +63,7 @@ namespace dll
 		T* m_ptr{ nullptr };
 		size_t m_size{ 0 };
 		size_t next_pos{ 0 };
-		bool has_elements{ false };
+		
 
 	public:
 		BAG() :m_size{ 1 }, m_ptr{ reinterpret_cast<T*>(calloc(m_size, sizeof(T))) } {};
@@ -79,7 +79,6 @@ namespace dll
 			else if (m_size > 0)
 			{
 				for (size_t i = 0; i < m_size; ++i)m_ptr[i] = other.m_ptr[i];
-				has_elements = true;
 			}
 		}
 		BAG(BAG&& other)
@@ -111,8 +110,9 @@ namespace dll
 			else if (m_size > 0)
 			{
 				for (size_t i = 0; i < m_size; ++i)m_ptr[i] = other.m_ptr[i];
-				has_elements = true;
 			}
+
+			return *this;
 		}
 		BAG& operator=(BAG&& other)
 		{
@@ -122,13 +122,15 @@ namespace dll
 			m_size = other.m_size;
 			m_ptr = other.m_ptr;
 			other.m_ptr = nullptr;
+			
+			return *this;
 		}
 
 		T& operator[](size_t index)
 		{
 			if (index >= next_pos)throw EXCEPTION(BAG_BAD_INDEX);
 			if (!m_ptr)throw EXCEPTION(BAG_BAD_PTR);
-			if (!has_elements)throw EXCEPTION(BAG_NO_ELEMENTS);
+			if (next_pos == 0)throw EXCEPTION(BAG_NO_ELEMENTS);
 
 			return m_ptr[index];
 		}
@@ -136,21 +138,21 @@ namespace dll
 		T& front() const
 		{
 			if (!m_ptr)throw EXCEPTION(BAG_BAD_PTR);
-			if (!has_elements)throw EXCEPTION(BAG_NO_ELEMENTS);
+			if (next_pos == 0)throw EXCEPTION(BAG_NO_ELEMENTS);
 
 			return *m_ptr;
 		}
 		T& back() const
 		{
 			if (!m_ptr)throw EXCEPTION(BAG_BAD_PTR);
-			if (!has_elements)throw EXCEPTION(BAG_NO_ELEMENTS);
+			if (next_pos == 0)throw EXCEPTION(BAG_NO_ELEMENTS);
 
 			return m_ptr[next_pos - 1];
 		}
 
 		size_t capacity()const
 		{
-			return size;
+			return m_size;
 		}
 		size_t size() const
 		{
@@ -158,19 +160,16 @@ namespace dll
 		}
 		bool empty() const
 		{
-			if (has_elements)return false;
-
-			return true;
+			return (next_pos == 0);
 		}
 
 		void clear()
 		{
 			free(m_ptr);
-			size = 1;
+			m_size = 1;
 			next_pos = 0;
-			has_elements = false;
 
-			m_ptr = reinterpret_cast<T*>(calloc(size, sizeof(T)));
+			m_ptr = reinterpret_cast<T*>(calloc(m_size, sizeof(T)));
 		}
 
 		void push_back(T element)
@@ -182,7 +181,6 @@ namespace dll
 				{
 					m_ptr[next_pos] = element;
 					++next_pos;
-					has_elements = true;
 				}
 				else
 				{
@@ -206,7 +204,6 @@ namespace dll
 				{
 					m_ptr[next_pos] = *element;
 					++next_pos;
-					has_elements = true;
 				}
 				else
 				{
@@ -230,7 +227,7 @@ namespace dll
 				if (next_pos == 0)
 				{
 					*m_ptr = element;
-					has_elements = true;
+					++next_pos;
 				}
 				else
 				{
@@ -269,7 +266,7 @@ namespace dll
 				if (next_pos == 0)
 				{
 					*m_ptr = *element;
-					has_elements = true;
+					++next_pos;
 				}
 				else
 				{
@@ -309,7 +306,6 @@ namespace dll
 			if (next_pos == 0)
 			{
 				*m_ptr = element;
-				has_elements = true;
 			}
 			else
 			{
@@ -341,7 +337,6 @@ namespace dll
 			if (next_pos == 0)
 			{
 				*m_ptr = *element;
-				has_elements = true;
 			}
 			else
 			{
@@ -658,7 +653,7 @@ namespace dll
 
 		static EVIL* create(evils type, float start_x, float start_y);
 
-		friend char AIDispatcher(EVIL& evil, FPOINT hero_center, BAG<FPOINT>& tomahawks, BAG<FPOINT>& obstacles);
+		friend char JUNGLE_API AIDispatcher(EVIL& evil, FPOINT hero_center, BAG<FPOINT>& tomahawks, BAG<FPOINT>& obstacles);
 	};
 	
 	// FUNCTIONS *************************************
@@ -671,5 +666,5 @@ namespace dll
 
 	JUNGLE_API bool Intersect(FPOINT first, FPOINT second, float x_rad1, float x_rad2, float y_rad1, float y_rad2);
 
-	char AIDispatcher(EVIL& evil, FPOINT hero_center, BAG<FPOINT>& tomahawks, BAG<FPOINT>& obstacles);
+	char JUNGLE_API AIDispatcher(EVIL& evil, FPOINT hero_center, BAG<FPOINT>& tomahawks, BAG<FPOINT>& obstacles);
 }

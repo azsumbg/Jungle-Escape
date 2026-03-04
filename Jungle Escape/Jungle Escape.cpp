@@ -1553,6 +1553,57 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				}
 			}
 		}
+
+		if (!vAssets.empty() && Hero)
+		{
+			for (std::vector<dll::ASSET*>::iterator asset = vAssets.begin(); asset < vAssets.end(); ++asset)
+			{
+				if (dll::Intersect((*asset)->center, Hero->center, (*asset)->x_rad, Hero->x_rad,
+					(*asset)->y_rad, Hero->y_rad))
+				{
+					switch ((*asset)->type)
+					{
+					case assets::potion:
+						if (Hero->lifes + 30 <= 100)Hero->lifes += 30;
+						else Hero->lifes = 100;
+						if (sound)mciSendString(L"play .\\res\\snd\\heal.wav", NULL, NULL, NULL);
+						break;
+
+					case assets::gold:
+						score += 20 * level;
+						if (sound)mciSendString(L"play .\\res\\snd\\gold.wav", NULL, NULL, NULL);
+						break;
+
+					case assets::crystal:
+						if (RandIt(0, 10) == 6)
+						{
+							if (sound)mciSendString(L"play .\\res\\snd\\weapon.wav", NULL, NULL, NULL);
+							Hero->strenght++;
+						}
+						else
+						{
+							score += 20 * level;
+							if (sound)mciSendString(L"play .\\res\\snd\\gold.wav", NULL, NULL, NULL);
+						}
+						break;
+
+					case assets::chest:
+						if (RandIt(0, 10) == 6 && Hero->armor < 10)
+						{
+							Hero->armor++;
+							if (sound)mciSendString(L"play .\\res\\snd\\armor.wav", NULL, NULL, NULL);
+							break;
+						}
+						else
+						{
+							score += 20 * level;
+							if (sound)mciSendString(L"play .\\res\\snd\\gold.wav", NULL, NULL, NULL);
+						}
+						break;
+					}
+				}
+			}
+		}
 		
 		////////////////////////////////////////////////////////////
 		

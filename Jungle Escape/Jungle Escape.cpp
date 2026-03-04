@@ -1178,6 +1178,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			{
 				if (!(*tree)->move(field_dir, (float)(level)))
 				{
+					(*tree)->Release();
 					vTrees.erase(tree);
 					break;
 				}
@@ -1229,6 +1230,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			{
 				if (!(*tree)->move(field_dir, (float)(level)))
 				{
+					(*tree)->Release();
 					vPlatforms.erase(tree);
 					break;
 				}
@@ -1311,6 +1313,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			{
 				if (!(*atile)->move(field_dir, (float)(level)))
 				{
+					(*atile)->Release();
 					vTiles.erase(atile);
 					switch (field_dir)
 					{
@@ -1646,6 +1649,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 							hero_tomb = Hero->center;
 							FreeMem(&Hero);
 						}
+						else Hero->jump((float)(level));
 						break;
 					}
 				}
@@ -1662,7 +1666,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				{
 					for (std::vector<dll::EVIL*>::iterator evil = vEvils.begin(); evil < vEvils.end(); ++evil)
 					{
-
 						if (dll::Intersect((*evil)->center, vTiles[i]->center, (*evil)->x_rad, vTiles[i]->x_rad,
 							(*evil)->y_rad, (*evil)->y_rad))
 						{
@@ -1674,6 +1677,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 								(*evil)->Release();
 								vEvils.erase(evil);
 							}
+							else (*evil)->jump((float)(level));
 							break;
 						}
 					}

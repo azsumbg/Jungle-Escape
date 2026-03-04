@@ -163,6 +163,7 @@ std::vector<dll::SHOT*>vTomahawks;
 std::vector<dll::SHOT*>vArrows;
 
 dll::HERO* Hero{ nullptr };
+FPOINT hero_tomb{};
 
 dirs field_dir = dirs::stop;
 
@@ -607,6 +608,27 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 				if (Hero->in_jump || Hero->state == FALLING)break;
 				Hero->jump((float)(level));
 				break;
+
+			case VK_DOWN:
+				Hero->dir = dirs::stop;
+				break;
+
+			case VK_SPACE:
+				if (!vEvils.empty())
+				{
+					dll::BAG<FPOINT> evil(vEvils.size());
+
+					for (int i = 0; i < vEvils.size(); ++i)evil.push_back(vEvils[i]->center);
+
+					dll::Sort(evil, Hero->center);
+
+					vTomahawks.push_back(dll::SHOT::create(shots::tomahawk, Hero->center.x, Hero->center.y,
+						evil[0].x, evil[0].y));
+					vTomahawks.back()->damage = Hero->strenght;
+					if (evil[0].x >= Hero->center.x)vTomahawks.back()->dir = dirs::right;
+					else vTomahawks.back()->dir = dirs::left;
+				}
+				else if (sound)mciSendString(L"play .\\res\\snd\\negative.wav", NULL, NULL, NULL);
 			}
 		}
 		break;
@@ -1213,7 +1235,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
-
 		/////////////////////////////////////////////////////////////
 
 		if (Hero)
@@ -1351,7 +1372,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
-		//////////////////////////////////////////////////////////////
+		// MOVE *****************************************************
 
 		if (Hero && !vPlatforms.empty())
 		{
@@ -1502,6 +1523,39 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
+		////////////////////////////////////////////////////////////
+		
+		// BATTLE *****************************
+		
+		if (!vEvils.empty() && !vTomahawks.empty())
+		{
+			bool killed = false;
+
+			for (std::vector<dll::EVIL*>::iterator evil = vEvils.begin(); evil < vEvils.end(); ++evil)
+			{
+				for (std::vector<dll::SHOT*>::iterator shot = vTomahawks.begin(); shot < vTomahawks.end(); ++shot)
+				{
+					if (dll::Intersect((*evil)->center, (*shot)->center, (*evil)->x_rad, (*shot)->x_rad,
+						(*evil)->y_rad, (*shot)->y_rad))
+					{
+						(*evil)->lifes -= (*shot)->damage;
+						vTomahawks.erase(shot);
+
+						if ((*evil)->lifes <= 0)
+						{
+							vEvils.erase(evil);
+							score += 3 * level;
+							killed = true;
+						}
+
+						break;
+					}
+				}
+
+				if (killed)break;
+			}
+		}
+		
 		if (!vArrows.empty())
 		{
 			for (int i = 0; i < vArrows.size(); ++i)
@@ -1514,6 +1568,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 	
+		if (!vTomahawks.empty())
+		{
+			for (int i = 0; i < vTomahawks.size(); ++i)
+			{
+				if (!vTomahawks[i]->move((float)(level)))
+				{
+					vTomahawks.erase(vTomahawks.begin() + i);
+					break;
+				}
+			}
+		}
 
 	// DRAW THINGS ***********************************************
 

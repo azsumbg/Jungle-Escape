@@ -157,6 +157,10 @@ std::vector<dll::TILE*> vTiles;
 std::vector<dll::TILE*> vTrees;
 
 std::vector<dll::PLATFORM*>vPlatforms;
+std::vector<dll::EVIL*>vEvils;
+
+std::vector<dll::SHOT*>vTomahawks;
+std::vector<dll::SHOT*>vArrows;
 
 dll::HERO* Hero{ nullptr };
 
@@ -321,6 +325,15 @@ void InitGame()
 
 	if (!vPlatforms.empty())for (int i = 0; i < vPlatforms.size(); ++i)FreeMem(&vPlatforms[i]);
 	vPlatforms.clear();
+
+	if (!vEvils.empty())for (int i = 0; i < vEvils.size(); ++i)FreeMem(&vEvils[i]);
+	vEvils.clear();
+
+	if (!vTomahawks.empty())for (int i = 0; i < vTomahawks.size(); ++i)FreeMem(&vTomahawks[i]);
+	vTomahawks.clear();
+
+	if (!vArrows.empty())for (int i = 0; i < vArrows.size(); ++i)FreeMem(&vArrows[i]);
+	vArrows.clear();
 
 	if (!vTiles.empty())for (int i = 0; i < vTiles.size(); ++i)FreeMem(&vTiles[i]);
 	vTiles.clear();
@@ -1374,9 +1387,79 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
+		if (vEvils.size() > 5 + level)
+		{
+			evils temp_type{ static_cast<evils>(RandIt(0, 3)) };
+			float temp_y = 0;
+			switch (temp_type)
+			{
+			case evils::flyer:
+				temp_y = ground - 43.0f;
+				break;
+			
+			case evils::mushroom:
+				temp_y = ground - 41.0f;
+				break;
 
+			case evils::snail:
+				temp_y = ground - 45.0f;
+				break;
 
+			case evils::octopus:
+				temp_y = ground - 51.0f;
+				break;
+			}
+			vEvils.push_back(dll::EVIL::create(temp_type, scr_width + RandIt(0.0f, 200.0f), temp_y));
+		}
 
+		if (!vEvils.empty() && Hero)
+		{
+			for (int i = 0; i < vEvils.size(); ++i)
+			{
+				dll::EVIL* anEvil{ vEvils[i] };
+				
+				dll::BAG<FPOINT> tomahawkBag(vTomahawks.size());
+				dll::BAG<FPOINT> obstBag(vTiles.size());
+
+				bool evil_gone = false;
+
+				switch (dll::AIDispatcher(*anEvil, Hero->center, tomahawkBag, obstBag))
+				{
+				case RUN:
+					if (!vEvils[i]->move((float)(level)))
+					{
+						evil_gone = true;
+						break;
+					}
+					break;
+
+				case FALLING:
+					vEvils[i]->fall((float)(level));
+					break;
+
+				case JUMP_UP:
+					vEvils[i]->jump((float)(level));
+					break;
+
+				case SHOOT:
+					{
+						int ready = vEvils[i]->attack();
+
+						if (ready > 0)
+						{
+							vArrows.push_back(dll::SHOT::create(shots::arrow, anEvil->start.x, anEvil->start.y,
+								Hero->center.x, Hero->center.y));
+							vArrows.back()->damage = ready;
+							if (Hero->center.x >= anEvil->center.x)vArrows.back()->dir = dirs::right;
+							else vArrows.back()->dir = dirs::left;
+						}
+					}
+					break;
+				}
+
+				if (evil_gone)break;
+			}
+		}
 
 
 
@@ -1497,6 +1580,50 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				D2D1::Point2F(Hero->start.x + (float)(Hero->lifes / 2), Hero->start.y - 8.0f), txtBrush, 5.0f);
 		}
 
+		if (!vEvils.empty())
+		{
+			for (int i = 0; i < vEvils.size(); ++i)
+			{
+				dll::EVIL* anEvil{ vEvils[i] };
+				int aframe{ 0 };
+
+				if (anEvil->type == evils::flyer)
+				{
+					switch (anEvil->dir)
+					{
+					case dirs::left:
+						aframe = anEvil->get_frame();
+						Draw->DrawBitmap(bmpFlyerL[aframe], Resizer(bmpFlyerL[aframe], anEvil->start.x, anEvil->start.y));
+						break;
+
+					case dirs::right:
+						aframe = anEvil->get_frame();
+						Draw->DrawBitmap(bmpFlyerR[aframe], Resizer(bmpFlyerL[aframe], anEvil->start.x, anEvil->start.y));
+						break;
+					}
+				}
+				else if (anEvil->type == evils::mushroom)
+					Draw->DrawBitmap(bmpMushroom[aframe], Resizer(bmpFlyerL[aframe], anEvil->start.x, anEvil->start.y));
+				else if (anEvil->type == evils::snail)
+				{
+					switch (anEvil->dir)
+					{
+					case dirs::left:
+						aframe = anEvil->get_frame();
+						Draw->DrawBitmap(bmpSnailL[aframe], Resizer(bmpSnailL[aframe], anEvil->start.x, anEvil->start.y));
+						break;
+
+					case dirs::right:
+						aframe = anEvil->get_frame();
+						Draw->DrawBitmap(bmpSnailR[aframe], Resizer(bmpSnailR[aframe], anEvil->start.x, anEvil->start.y));
+						break;
+					}
+				}
+				else if (anEvil->type == evils::octopus)
+					Draw->DrawBitmap(bmpOctopus[aframe], Resizer(bmpOctopus[aframe], anEvil->start.x, anEvil->start.y));
+			}
+		}
+
 		if (!vTrees.empty())
 		{
 			for (std::vector<dll::TILE*>::iterator tree = vTrees.begin(); tree < vTrees.end(); ++tree)
@@ -1518,8 +1645,29 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
+		if (!vArrows.empty() && Hero)
+		{
+			for (int i = 0; i < vArrows.size(); ++i)
+			{
+				dll::SHOT* arrow{ vArrows[i] }; 
 
+				if (arrow->dir == dirs::left)
+					Draw->DrawBitmap(bmpArrowL, D2D1::RectF(arrow->start.x, arrow->start.y, arrow->end.x, arrow->end.y));
+				else Draw->DrawBitmap(bmpArrowR, D2D1::RectF(arrow->start.x, arrow->start.y, arrow->end.x, arrow->end.y));
+			}
+		}
 
+		if (!vTomahawks.empty())
+		{
+			for (int i = 0; i < vTomahawks.size(); ++i)
+			{
+				dll::SHOT* arrow{ vTomahawks[i] };
+
+				if (arrow->dir == dirs::left)
+					Draw->DrawBitmap(bmpTomahawkL, D2D1::RectF(arrow->start.x, arrow->start.y, arrow->end.x, arrow->end.y));
+				else Draw->DrawBitmap(bmpTomahawkR, D2D1::RectF(arrow->start.x, arrow->start.y, arrow->end.x, arrow->end.y));
+			}
+		}
 
 
 	//////////////////////////////////////////////////////////////

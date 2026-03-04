@@ -623,6 +623,9 @@ namespace dll
 		int max_frame_delay{ 0 };
 		int frame{ 0 };
 
+		int attack_delay = 0;
+		int max_attack_delay = 0;
+
 		RANDIT _rand{};
 		
 		void set_path(float _end_x, float _end_y);
@@ -649,11 +652,13 @@ namespace dll
 		
 		int get_frame();
 
+		int attack();
+
 		void Release();
 
 		static EVIL* create(evils type, float start_x, float start_y);
 
-		friend char AIDispatcher(EVIL& evil, FPOINT hero_center, BAG<FPOINT>& tomahawks);
+		friend char AIDispatcher(EVIL& evil, FPOINT hero_center, BAG<FPOINT>& tomahawks, BAG<FPOINT>& obstacles);
 	};
 	
 	// FUNCTIONS *************************************
@@ -666,5 +671,5 @@ namespace dll
 
 	JUNGLE_API bool Intersect(FPOINT first, FPOINT second, float x_rad1, float x_rad2, float y_rad1, float y_rad2);
 
-	char AIDispatcher(EVIL& evil, FPOINT hero_center, BAG<FPOINT>& tomahawks);
+	char AIDispatcher(EVIL& evil, FPOINT hero_center, BAG<FPOINT>& tomahawks, BAG<FPOINT>& obstacles);
 }

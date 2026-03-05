@@ -81,8 +81,7 @@ float y_scale{ 0 };
 
 int level = 1;
 int score = 0;
-int mins = 0;
-int secs = 0;
+int distance = 0;
 
 ID2D1Factory* iFactory{ nullptr };
 ID2D1HwndRenderTarget* Draw{ nullptr };
@@ -299,8 +298,7 @@ void InitGame()
 	wcscpy_s(current_player, L"TARLYO");
 	level = 1;
 	score = 0;
-	mins = 0;
-	secs = 300;
+	distance = 400;
 
 	hero_killed = false;
 	name_set = false;
@@ -422,7 +420,7 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 	case WM_CREATE:
 		if (bIns)
 		{
-			SetTimer(hwnd, bTimer, 1000, NULL);
+			SetTimer(hwnd, bTimer, 500, NULL);
 
 			bBar = CreateMenu();
 			bMain = CreateMenu();
@@ -460,8 +458,12 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 
 	case WM_TIMER:
 		if (pause)break;
-		--secs;
-		mins = secs / 60;
+		if (Hero)
+		{
+			if (Hero->dir == dirs::stop)break;
+			else if (Hero->dir != dirs::left)--distance;
+			else if (Hero->start.x <= 100.0f)++distance;
+		}
 		break;
 
 	case WM_PAINT:
@@ -1566,12 +1568,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					switch ((*asset)->type)
 					{
 					case assets::potion:
+						(*asset)->Release();
+						vAssets.erase(asset);
 						if (Hero->lifes + 30 <= 100)Hero->lifes += 30;
 						else Hero->lifes = 100;
 						if (sound)mciSendString(L"play .\\res\\snd\\heal.wav", NULL, NULL, NULL);
 						break;
 
 					case assets::gold:
+						(*asset)->Release();
+						vAssets.erase(asset);
 						score += 20 * level;
 						if (sound)mciSendString(L"play .\\res\\snd\\gold.wav", NULL, NULL, NULL);
 						break;
@@ -1579,11 +1585,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					case assets::crystal:
 						if (RandIt(0, 50) == 6)
 						{
+							(*asset)->Release();
+							vAssets.erase(asset);
 							if (sound)mciSendString(L"play .\\res\\snd\\weapon.wav", NULL, NULL, NULL);
 							Hero->strenght++;
 						}
 						else
 						{
+							(*asset)->Release();
+							vAssets.erase(asset);
 							score += 20 * level;
 							if (sound)mciSendString(L"play .\\res\\snd\\gold.wav", NULL, NULL, NULL);
 						}
@@ -1592,20 +1602,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					case assets::chest:
 						if (RandIt(0, 50) == 6 && Hero->armor < 10)
 						{
+							(*asset)->Release();
+							vAssets.erase(asset);
 							Hero->armor++;
 							if (sound)mciSendString(L"play .\\res\\snd\\armor.wav", NULL, NULL, NULL);
 							break;
 						}
 						else
 						{
+							(*asset)->Release();
+							vAssets.erase(asset);
 							score += 20 * level;
 							if (sound)mciSendString(L"play .\\res\\snd\\gold.wav", NULL, NULL, NULL);
 						}
 						break;
 					}
 
-					(*asset)->Release();
-					vAssets.erase(asset);
 					break;
 				}
 			}
@@ -2001,6 +2013,47 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					Draw->DrawBitmap(bmpTomahawkL, D2D1::RectF(arrow->start.x, arrow->start.y, arrow->end.x, arrow->end.y));
 				else Draw->DrawBitmap(bmpTomahawkR, D2D1::RectF(arrow->start.x, arrow->start.y, arrow->end.x, arrow->end.y));
 			}
+		}
+
+		// STATUS TEXT ******************************************
+
+		if (nrmTxt && hgltBrush && Hero)
+		{
+			wchar_t stat_txt[150]{ L"\0" };
+			int stat_size{ 0 };
+
+			swprintf_s(stat_txt, 150, L"остават: %.2f км.", distance / 100.0f);
+			for (int i = 0; i < 150; ++i)
+			{
+				if (stat_txt[i] != '\0')++stat_size;
+				else break;
+			}
+
+			Draw->DrawTextW(stat_txt, stat_size, nrmTxt, D2D1::RectF(scr_width - 200.0f, 60.0f, scr_width, scr_height), 
+				hgltBrush);
+
+			stat_size = 0;
+			wcscpy_s(stat_txt, current_player);
+			
+			swprintf_s(stat_txt, 150, L"ниво: %d, броня: %d, меч: % d, точки:% d", level, Hero->armor, Hero->strenght, score);
+
+			for (int i = 0; i < 150; ++i)
+			{
+				if (stat_txt[i] != '\0')++stat_size;
+				else break;
+			}
+
+			Draw->DrawTextW(stat_txt, stat_size, nrmTxt, D2D1::RectF(20.0f, ground + 5.0f, scr_width, scr_height),
+				hgltBrush);
+
+			stat_size = 0;
+			for (int i = 0; i < 16; ++i)
+			{
+				if (current_player[i] != '\0')++stat_size;
+				else break;
+			}
+			Draw->DrawTextW(current_player, stat_size, nrmTxt, D2D1::RectF(20.0f, sky + 10.0f, scr_width, scr_height),
+				hgltBrush);
 		}
 
 

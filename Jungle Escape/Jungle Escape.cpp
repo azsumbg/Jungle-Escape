@@ -453,8 +453,7 @@ void LevelUp(bool level_skipped)
 	distance = 400 + 10 * level;
 
 	hero_killed = false;
-	name_set = false;
-
+	
 	house_active = false;
 	House.left = scr_width;
 	House.right = scr_width + 147.0f;
@@ -585,21 +584,14 @@ void ShowRecord()
 void SaveGame()
 {
 	int result{ 0 };
-	CheckFile(record_file, &result);
-	if (result == FILE_NOT_EXIST)
-	{
-		if (sound)mciSendString(L"play .\\res\\snd\\negative.wav", NULL, NULL, NULL);
-		MessageBox(bHwnd, L"Все още липсва записана игра !\n\nПостарай се повече !",
-			L"Липсва файл !", MB_OK | MB_APPLMODAL | MB_ICONEXCLAMATION);
-		return;
-	}
-	else
+	CheckFile(save_file, &result);
+	if (result == FILE_EXIST)
 	{
 		if (sound)mciSendString(L"play .\\res\\snd\\exclamation.wav", NULL, NULL, NULL);
 		if (MessageBox(bHwnd, L"Има предишна записана игра !\n\nНаистина ли я презаписваш ?",
 			L"Презапис !", MB_YESNO | MB_APPLMODAL | MB_ICONQUESTION) == IDNO)return;
 	}
-
+	
 	std::wofstream save(save_file);
 
 	save << score << std::endl;
@@ -638,7 +630,7 @@ void SaveGame()
 	save << vEvils.size() << std::endl;
 	if (!vEvils.empty())
 	{
-		for (int i = 0; i < vPlatforms.size(); ++i)
+		for (int i = 0; i < vEvils.size(); ++i)
 		{
 			save << static_cast<int>(vEvils[i]->type) << std::endl;
 			save << vEvils[i]->start.x << std::endl;
@@ -673,7 +665,7 @@ void SaveGame()
 void LoadGame()
 {
 	int result{ 0 };
-	CheckFile(record_file, &result);
+	CheckFile(save_file, &result);
 	if (result == FILE_NOT_EXIST)
 	{
 		if (sound)mciSendString(L"play .\\res\\snd\\negative.wav", NULL, NULL, NULL);
@@ -751,7 +743,7 @@ void LoadGame()
 			save >> tx;
 			save >> ty;
 
-			vAssets.push_back(dll::ASSET::create(static_cast<assets>(ttype), tx, ty, dirs::stop));
+			vAssets.push_back(dll::ASSET::create(static_cast<assets>(ttype), tx, ty, dirs::left));
 		}
 	}
 
@@ -768,7 +760,7 @@ void LoadGame()
 			save >> tx;
 			save >> ty;
 
-			vPlatforms.push_back(dll::PLATFORM::create(static_cast<platforms>(ttype), tx, ty, dirs::stop));
+			vPlatforms.push_back(dll::PLATFORM::create(static_cast<platforms>(ttype), tx, ty, dirs::left));
 		}
 	}
 
@@ -805,7 +797,7 @@ void LoadGame()
 			save >> tx;
 			save >> ty;
 
-			vTiles.push_back(dll::TILE::create(static_cast<tiles>(ttype), tx, ty, dirs::stop));
+			vTiles.push_back(dll::TILE::create(static_cast<tiles>(ttype), tx, ty, dirs::left));
 		}
 	}
 
@@ -814,6 +806,12 @@ void LoadGame()
 	int hero_lifes = 0;
 	int hero_armor = 0;
 	int hero_strenght = 0;
+
+	save >> hero_x;
+	save >> hero_y;
+	save >> hero_lifes;
+	save >> hero_armor;
+	save >> hero_strenght;
 
 	Hero = dll::HERO::create(hero_x, hero_y);
 	Hero->lifes = hero_lifes;

@@ -285,13 +285,69 @@ void ErrExit(int what_happened)
 	std::remove(tmp_file);
 	exit(1);
 }
+BOOL CheckRecord()
+{
+	if (score < 1)return no_record;
 
+	int result = 0;
+	CheckFile(record_file, &result);
+	if (result == FILE_NOT_EXIST)
+	{
+		std::wofstream rec(record_file);
+		rec << score << std::endl;
+		for (int i = 0; i < 16; ++i)rec << static_cast<int>(current_player[i]) << std::endl;
+		rec.close();
+		return first_record;
+	}
+	else
+	{
+		std::wifstream check(record_file);
+		check >> result;
+		check.close();
+
+		if (result < score)
+		{
+			std::wofstream rec(record_file);
+			rec << score << std::endl;
+			for (int i = 0; i < 16; ++i)rec << static_cast<int>(current_player[i]) << std::endl;
+			rec.close();
+			return record;
+		}
+	}
+
+	return no_record;
+}
 void GameOver()
 {
 	PlaySound(NULL, NULL, NULL);
 	KillTimer(bHwnd, bTimer);
 
+	switch (CheckRecord())
+	{
+	case no_record:
+		Draw->BeginDraw();
+		Draw->DrawBitmap(bmpGameLoose, D2D1::RectF(0, 0, scr_width, scr_height));
+		Draw->EndDraw();
+		if (sound)PlaySound(L".\\res\\snd\\loose.wav", NULL, SND_SYNC);
+		else Sleep(3500);
+		break;
 
+	case first_record:
+		Draw->BeginDraw();
+		Draw->DrawBitmap(bmpGameWin, D2D1::RectF(0, 0, scr_width, scr_height));
+		Draw->EndDraw();
+		if (sound)PlaySound(L".\\res\\snd\\win.wav", NULL, SND_SYNC);
+		else Sleep(3500);
+		break;
+
+	case record:
+		Draw->BeginDraw();
+		Draw->DrawBitmap(bmpGameRecord, D2D1::RectF(0, 0, scr_width, scr_height));
+		Draw->EndDraw();
+		if (sound)PlaySound(L".\\res\\snd\\record.wav", NULL, SND_SYNC);
+		else Sleep(3500);
+		break;
+	}
 
 	bMsg.message = WM_QUIT;
 	bMsg.wParam = 0;
@@ -469,7 +525,63 @@ void LevelUp(bool level_skipped)
 	if (Hero)FreeMem(&Hero);
 	Hero = dll::HERO::create(100.0f, ground - 51.0f);
 }
+void ShowRecord()
+{
+	int result{ 0 };
+	CheckFile(record_file, &result);
+	if (result == FILE_NOT_EXIST)
+	{
+		if (sound)mciSendString(L"play .\\res\\snd\\negative.wav", NULL, NULL, NULL);
+		MessageBox(bHwnd, L"Все още липсва рекорд на играта !\n\nПостарай се повече !",
+			L"Липсва файл !", MB_OK | MB_APPLMODAL | MB_ICONEXCLAMATION);
+		return;
+	}
 
+	std::wifstream rec{ record_file };
+
+	wchar_t rec_txt[100]{ L"НАЙ-ДОБЪР ИГРАЧ: " };
+
+	wchar_t saved_player[16]{ L"\0" };
+	wchar_t saved_score[5]{ L"\0" };
+
+	rec >> result;
+	for (int i = 0; i < 16; ++i)
+	{
+		int letter = 0;
+		rec >> letter;
+		saved_player[i] = static_cast<wchar_t>(letter);
+	}
+	rec.close();
+
+	wsprintf(saved_score, L"%d", result);
+	wcscat_s(rec_txt, saved_player);
+	wcscat_s(rec_txt, L"\n\nСВЕТОВЕН РЕКОРД: ");
+	wcscat_s(rec_txt, saved_score);
+
+	result = 0;
+	for (int i = 0; i < 100; ++i)
+	{
+		if (rec_txt[i] != '\0')++result;
+		else break;
+	}
+
+	if (midTxt && hgltBrush)
+	{
+		Draw->BeginDraw();
+		Draw->Clear(D2D1::ColorF(D2D1::ColorF::DarkKhaki));
+		Draw->DrawTextW(rec_txt, result, midTxt, D2D1::RectF(100.0f, 80.0f, scr_width, scr_height), hgltBrush);
+		Draw->EndDraw();
+	}
+
+	if (sound)
+	{
+		PlaySound(NULL, NULL, NULL);
+		PlaySound(L".\\res\\snd\\showrec.wav", NULL, SND_SYNC);
+		Sleep(2500);
+		PlaySound(sound_file, NULL, SND_ASYNC | SND_LOOP);
+	}
+	else Sleep(4000);
+}
 
 INT_PTR CALLBACK DlgProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -695,6 +807,12 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 			break;
 
 
+
+		case mHoF:
+			pause = true;
+			ShowRecord();
+			pause = false;
+			break;
 		}
 		break;
 

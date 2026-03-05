@@ -565,11 +565,11 @@ void ShowRecord()
 		else break;
 	}
 
-	if (midTxt && hgltBrush)
+	if (midTxt && inactBrush)
 	{
 		Draw->BeginDraw();
 		Draw->Clear(D2D1::ColorF(D2D1::ColorF::DarkKhaki));
-		Draw->DrawTextW(rec_txt, result, midTxt, D2D1::RectF(100.0f, 80.0f, scr_width, scr_height), hgltBrush);
+		Draw->DrawTextW(rec_txt, result, midTxt, D2D1::RectF(200.0f, 200.0f, scr_width, scr_height), inactBrush);
 		Draw->EndDraw();
 	}
 
@@ -581,6 +581,251 @@ void ShowRecord()
 		PlaySound(sound_file, NULL, SND_ASYNC | SND_LOOP);
 	}
 	else Sleep(4000);
+}
+void SaveGame()
+{
+	int result{ 0 };
+	CheckFile(record_file, &result);
+	if (result == FILE_NOT_EXIST)
+	{
+		if (sound)mciSendString(L"play .\\res\\snd\\negative.wav", NULL, NULL, NULL);
+		MessageBox(bHwnd, L"Все още липсва записана игра !\n\nПостарай се повече !",
+			L"Липсва файл !", MB_OK | MB_APPLMODAL | MB_ICONEXCLAMATION);
+		return;
+	}
+	else
+	{
+		if (sound)mciSendString(L"play .\\res\\snd\\exclamation.wav", NULL, NULL, NULL);
+		if (MessageBox(bHwnd, L"Има предишна записана игра !\n\nНаистина ли я презаписваш ?",
+			L"Презапис !", MB_YESNO | MB_APPLMODAL | MB_ICONQUESTION) == IDNO)return;
+	}
+
+	std::wofstream save(save_file);
+
+	save << score << std::endl;
+	save << level << std::endl;
+	save << hero_killed << std::endl;
+	save << house_active << std::endl;
+	save << distance << std::endl;
+	save << need_tile_left << std::endl;
+	save << need_tile_right << std::endl;
+	
+	for (int i = 0; i < 16; ++i)save << static_cast<int>(current_player[i]) << std::endl;
+	save << name_set << std::endl;
+
+	save << vAssets.size() << std::endl;
+	if (!vAssets.empty())
+	{
+		for (int i = 0; i < vAssets.size(); ++i)
+		{
+			save << static_cast<int>(vAssets[i]->type) << std::endl;
+			save << vAssets[i]->start.x << std::endl;
+			save << vAssets[i]->start.y << std::endl;
+		}
+	}
+
+	save << vPlatforms.size() << std::endl;
+	if (!vPlatforms.empty())
+	{
+		for (int i = 0; i < vPlatforms.size(); ++i)
+		{
+			save << static_cast<int>(vPlatforms[i]->type) << std::endl;
+			save << vPlatforms[i]->start.x << std::endl;
+			save << vPlatforms[i]->start.y << std::endl;
+		}
+	}
+
+	save << vEvils.size() << std::endl;
+	if (!vEvils.empty())
+	{
+		for (int i = 0; i < vPlatforms.size(); ++i)
+		{
+			save << static_cast<int>(vEvils[i]->type) << std::endl;
+			save << vEvils[i]->start.x << std::endl;
+			save << vEvils[i]->start.y << std::endl;
+			save << vEvils[i]->lifes << std::endl;
+		}
+	}
+
+	save << vTiles.size() << std::endl;
+	if (!vTiles.empty())
+	{
+		for (int i = 0; i < vTiles.size(); ++i)
+		{
+			save << static_cast<int>(vTiles[i]->type) << std::endl;
+			save << vTiles[i]->start.x << std::endl;
+			save << vTiles[i]->start.y << std::endl;
+		}
+	}
+
+	save << Hero->start.x << std::endl;
+	save << Hero->start.y << std::endl;
+	save << Hero->lifes << std::endl;
+	save << Hero->armor << std::endl;
+	save << Hero->strenght << std::endl;
+
+	save.close();
+
+	if (sound)mciSendString(L"play .\\res\\snd\\save.wav", NULL, NULL, NULL);
+
+	MessageBox(bHwnd, L"Играта е запазена !", L"Запис !", MB_OK | MB_APPLMODAL | MB_ICONINFORMATION);
+}
+void LoadGame()
+{
+	int result{ 0 };
+	CheckFile(record_file, &result);
+	if (result == FILE_NOT_EXIST)
+	{
+		if (sound)mciSendString(L"play .\\res\\snd\\negative.wav", NULL, NULL, NULL);
+		MessageBox(bHwnd, L"Все още липсва записана игра !\n\nПостарай се повече !",
+			L"Липсва файл !", MB_OK | MB_APPLMODAL | MB_ICONEXCLAMATION);
+		return;
+	}
+	else
+	{
+		if (sound)mciSendString(L"play .\\res\\snd\\exclamation.wav", NULL, NULL, NULL);
+		if (MessageBox(bHwnd, L"Ако продължиш, губиш прогреса по тази игра !\n\nНаистина ли я презаписваш ?",
+			L"Презапис !", MB_YESNO | MB_APPLMODAL | MB_ICONQUESTION) == IDNO)return;
+	}
+
+	vBackgrounds.clear();
+	for (float t_x = -scr_width; t_x < 2.0f * scr_width; t_x += scr_width)
+		vBackgrounds.push_back(D2D1::RectF(t_x, 50.0f, t_x + scr_width, scr_height));
+
+	if (!vTrees.empty())for (int i = 0; i < vTrees.size(); ++i)FreeMem(&vTrees[i]);
+	vTrees.clear();
+
+	if (!vAssets.empty())for (int i = 0; i < vAssets.size(); ++i)FreeMem(&vAssets[i]);
+	vAssets.clear();
+
+	if (!vPlatforms.empty())for (int i = 0; i < vPlatforms.size(); ++i)FreeMem(&vPlatforms[i]);
+	vPlatforms.clear();
+
+	if (!vEvils.empty())for (int i = 0; i < vEvils.size(); ++i)FreeMem(&vEvils[i]);
+	vEvils.clear();
+
+	if (!vTomahawks.empty())for (int i = 0; i < vTomahawks.size(); ++i)FreeMem(&vTomahawks[i]);
+	vTomahawks.clear();
+
+	if (!vArrows.empty())for (int i = 0; i < vArrows.size(); ++i)FreeMem(&vArrows[i]);
+	vArrows.clear();
+
+	if (!vTiles.empty())for (int i = 0; i < vTiles.size(); ++i)FreeMem(&vTiles[i]);
+	vTiles.clear();
+
+	if (Hero)FreeMem(&Hero);
+
+	field_dir = dirs::stop;
+	
+	//////////////////////////////////////////////////////////////////////////////////////////
+
+	std::wifstream save(save_file);
+
+	save >> score;
+	save >> level;
+	save >> hero_killed;
+	if (hero_killed)GameOver();
+	save >> house_active;
+	save >> distance;
+	save >> need_tile_left;
+	save >> need_tile_right;
+
+	for (int i = 0; i < 16; ++i)
+	{
+		int letter = 0;
+		save >> letter;
+		current_player[i] = static_cast<wchar_t>(letter);
+	}
+	save >> name_set;
+
+	save >> result;
+	if (result > 0)
+	{
+		for (int i = 0; i < result; ++i)
+		{
+			int ttype = 0;
+			float tx = 0;
+			float ty = 0;
+			
+			save >> ttype;
+			save >> tx;
+			save >> ty;
+
+			vAssets.push_back(dll::ASSET::create(static_cast<assets>(ttype), tx, ty, dirs::stop));
+		}
+	}
+
+	save >> result;
+	if (result > 0)
+	{
+		for (int i = 0; i < result; ++i)
+		{
+			int ttype = 0;
+			float tx = 0;
+			float ty = 0;
+
+			save >> ttype;
+			save >> tx;
+			save >> ty;
+
+			vPlatforms.push_back(dll::PLATFORM::create(static_cast<platforms>(ttype), tx, ty, dirs::stop));
+		}
+	}
+
+	save >> result;
+	if (result > 0)
+	{
+		for (int i = 0; i < result; ++i)
+		{
+			int ttype = 0;
+			float tx = 0;
+			float ty = 0;
+			int lifes = 0;
+
+			save >> ttype;
+			save >> tx;
+			save >> ty;
+			save >> lifes;
+
+			vEvils.push_back(dll::EVIL::create(static_cast<evils>(ttype), tx, ty));
+			vEvils.back()->lifes = lifes;
+		}
+	}
+
+	save >> result;
+	if (result > 0)
+	{
+		for (int i = 0; i < result; ++i)
+		{
+			int ttype = 0;
+			float tx = 0;
+			float ty = 0;
+
+			save >> ttype;
+			save >> tx;
+			save >> ty;
+
+			vTiles.push_back(dll::TILE::create(static_cast<tiles>(ttype), tx, ty, dirs::stop));
+		}
+	}
+
+	float hero_x = 0;
+	float hero_y = 0;
+	int hero_lifes = 0;
+	int hero_armor = 0;
+	int hero_strenght = 0;
+
+	Hero = dll::HERO::create(hero_x, hero_y);
+	Hero->lifes = hero_lifes;
+	Hero->armor = hero_armor;
+	Hero->strenght = hero_strenght;
+	Hero->dir = dirs::stop;
+
+	save.close();
+
+	if (sound)mciSendString(L"play .\\res\\snd\\save.wav", NULL, NULL, NULL);
+
+	MessageBox(bHwnd, L"Играта е заредена !", L"Зареждане !", MB_OK | MB_APPLMODAL | MB_ICONINFORMATION);
 }
 
 INT_PTR CALLBACK DlgProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lParam)
@@ -806,7 +1051,17 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 			SendMessage(hwnd, WM_CLOSE, NULL, NULL);
 			break;
 
+		case mSave:
+			pause = true;
+			SaveGame();
+			pause = false;
+			break;
 
+		case mLoad:
+			pause = true;
+			LoadGame();
+			pause = false;
+			break;
 
 		case mHoF:
 			pause = true;

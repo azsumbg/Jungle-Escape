@@ -121,6 +121,7 @@ ID2D1Bitmap* bmpPlatform2{ nullptr };
 ID2D1Bitmap* bmpPlatform3{ nullptr };
 ID2D1Bitmap* bmpRIP{ nullptr };
 ID2D1Bitmap* bmpHouse{ nullptr };
+ID2D1Bitmap* bmpLevelUp{ nullptr };
 
 ID2D1Bitmap* bmpDirt{ nullptr };
 ID2D1Bitmap* bmpTrapAxe{ nullptr };
@@ -227,6 +228,8 @@ void ClearResources()
 	if (!FreeMem(&midTxt))LogErr(L"Error releasing D2D1 midTxt ! ");
 	if (!FreeMem(&bigTxt))LogErr(L"Error releasing D2D1 bigTxt ! ");
 
+	if (!FreeMem(&bmpLevelUp))LogErr(L"Error releasing D2D1 bmpLevelUp ! ");
+
 	if (!FreeMem(&bmpArrowL))LogErr(L"Error releasing D2D1 bmpArrowL ! ");
 	if (!FreeMem(&bmpArrowR))LogErr(L"Error releasing D2D1 bmpArrowR ! ");
 
@@ -298,7 +301,7 @@ void InitGame()
 	wcscpy_s(current_player, L"TARLYO");
 	level = 1;
 	score = 0;
-	distance = 400;
+	distance = 250;
 
 	hero_killed = false;
 	name_set = false;
@@ -372,9 +375,101 @@ void InitGame()
 
 	if (Hero)FreeMem(&Hero);
 	Hero = dll::HERO::create(100.0f, ground - 51.0f);
-
-	
 }
+void LevelUp(bool level_skipped)
+{
+	if (!level_skipped)score = 50 + 10 * level;
+	
+	Draw->BeginDraw();
+	Draw->DrawBitmap(bmpIntro[0], D2D1::RectF(0, 0, scr_width, scr_height));
+	Draw->DrawBitmap(bmpLevelUp, D2D1::RectF(0, 0, scr_width, scr_height));
+	Draw->EndDraw();
+	if (sound)
+	{
+		PlaySound(NULL, NULL, NULL);
+		PlaySound(L".\\res\\snd\\levelup.wav", NULL, SND_SYNC);
+		Sleep(1500);
+		PlaySound(sound_file, NULL, SND_ASYNC | SND_LOOP);
+	}
+	else Sleep(4000);
+	
+	++level;
+	distance = 400 + 10 * level;
+
+	hero_killed = false;
+	name_set = false;
+
+	house_active = false;
+	House.left = scr_width;
+	House.right = scr_width + 147.0f;
+	House.top = ground - 150.0f;
+	House.bottom = ground;
+
+	need_back_left = false;
+	need_back_right = false;
+
+	need_tile_left = false;
+	need_tile_right = false;
+
+	field_dir = dirs::stop;
+
+	vBackgrounds.clear();
+	for (float t_x = -scr_width; t_x < 2.0f * scr_width; t_x += scr_width)
+		vBackgrounds.push_back(D2D1::RectF(t_x, 50.0f, t_x + scr_width, scr_height));
+
+	if (!vTrees.empty())for (int i = 0; i < vTrees.size(); ++i)FreeMem(&vTrees[i]);
+	vTrees.clear();
+
+	if (!vAssets.empty())for (int i = 0; i < vAssets.size(); ++i)FreeMem(&vAssets[i]);
+	vAssets.clear();
+
+	if (!vPlatforms.empty())for (int i = 0; i < vPlatforms.size(); ++i)FreeMem(&vPlatforms[i]);
+	vPlatforms.clear();
+
+	if (!vEvils.empty())for (int i = 0; i < vEvils.size(); ++i)FreeMem(&vEvils[i]);
+	vEvils.clear();
+
+	if (!vTomahawks.empty())for (int i = 0; i < vTomahawks.size(); ++i)FreeMem(&vTomahawks[i]);
+	vTomahawks.clear();
+
+	if (!vArrows.empty())for (int i = 0; i < vArrows.size(); ++i)FreeMem(&vArrows[i]);
+	vArrows.clear();
+
+	if (!vTiles.empty())for (int i = 0; i < vTiles.size(); ++i)FreeMem(&vTiles[i]);
+	vTiles.clear();
+	float tile_x{ -scr_width };
+	for (int i = 0; i < 54; ++i)
+	{
+		tiles temp_type{ tiles::dirt };
+		int trouble = RandIt(0, 100);
+
+		if (trouble == 51)temp_type = tiles::water;
+		else if (trouble == 78)temp_type = tiles::dirt_water;
+		else if (trouble == 11)temp_type = tiles::trap_axe;
+		else if (trouble == 66)temp_type = tiles::trap_bolt;
+		else if (trouble == 33)temp_type = tiles::trap_spear;
+
+		if (tile_x >= 0 && tile_x <= 200.0f)temp_type = tiles::dirt;
+
+		if (temp_type != tiles::water && temp_type != tiles::dirt_water)
+		{
+			vTiles.push_back(dll::TILE::create(temp_type, tile_x, ground, dirs::stop));
+			tile_x += 50.0f;
+		}
+		else
+		{
+			for (int j = 0; j < 2; ++j)
+			{
+				vTiles.push_back(dll::TILE::create(temp_type, tile_x, ground, dirs::stop));
+				tile_x += 50.0f;
+			}
+		}
+	}
+
+	if (Hero)FreeMem(&Hero);
+	Hero = dll::HERO::create(100.0f, ground - 51.0f);
+}
+
 
 INT_PTR CALLBACK DlgProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -463,6 +558,11 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 			if (Hero->dir == dirs::stop)break;
 			else if (Hero->dir != dirs::left)--distance;
 			else if (Hero->start.x <= 100.0f)++distance;
+		}
+		if (distance <= 0)
+		{
+			if (sound)mciSendString(L"play .\\res\\snd\\house.wav", NULL, NULL, NULL);
+			house_active = true;
 		}
 		break;
 
@@ -587,7 +687,7 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 				pause = false;
 				break;
 			}
-			//LevelUp();
+			LevelUp(true);
 			break;
 
 		case mExit:
@@ -640,6 +740,46 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT ReceivedMsg, WPARAM wParam, LPARAM lPar
 				else if (sound)mciSendString(L"play .\\res\\snd\\negative.wav", NULL, NULL, NULL);
 			}
 		}
+		break;
+
+	case WM_LBUTTONDOWN:
+		if (HIWORD(lParam) * y_scale <= 50)
+		{
+			if (LOWORD(lParam) * x_scale >= b1Rect.left && LOWORD(lParam) * x_scale <= b1Rect.right)
+			{
+				if (name_set)
+				{
+					if (sound)(mciSendString(L"play .\\res\\snd\\negative.wav", NULL, NULL, NULL));
+					break;
+				}
+				if (sound)mciSendString(L"play .\\res\\snd\\select.wav", NULL, NULL, NULL);
+				if (DialogBox(bIns, MAKEINTRESOURCE(IDD_PLAYER), hwnd, &DlgProc) == IDOK)name_set = true;
+			}
+			else if (LOWORD(lParam) * x_scale >= b2Rect.left && LOWORD(lParam) * x_scale <= b2Rect.right)
+			{
+				mciSendString(L"play .\\res\\snd\\select.wav", NULL, NULL, NULL);
+				if (sound)
+				{
+					sound = false;
+					PlaySound(NULL, NULL, NULL);
+					break;
+				}
+				else
+				{
+					sound = true;
+					PlaySound(sound_file, NULL, SND_ASYNC | SND_LOOP);
+					break;
+				}
+			}
+			else if (LOWORD(lParam) * x_scale >= b3Rect.left && LOWORD(lParam) * x_scale <= b3Rect.right)
+			{
+				if (sound)mciSendString(L"play .\\res\\snd\\select.wav", NULL, NULL, NULL);
+
+				break;
+			}
+			else if (sound)mciSendString(L"play .\\res\\snd\\negative.wav", NULL, NULL, NULL);
+		}
+		else if (sound)mciSendString(L"play .\\res\\snd\\negative.wav", NULL, NULL, NULL);
 		break;
 
 	default: return DefWindowProc(hwnd, ReceivedMsg, wParam, lParam);
@@ -814,6 +954,12 @@ void CreateResources()
 			if (!bmpLogo)
 			{
 				LogErr(L"Error loading bmpLogo !");
+				ErrExit(eD2D);
+			}
+			bmpLevelUp = Load(L".\\res\\img\\field\\LevelUp.png", Draw);
+			if (!bmpLevelUp)
+			{
+				LogErr(L"Error loading bmpLevelUp !");
 				ErrExit(eD2D);
 			}
 			bmpGameWin = Load(L".\\res\\img\\field\\game_win.png", Draw);
@@ -1384,6 +1530,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
+		if (house_active)
+		{
+			switch (field_dir)
+			{
+			case dirs::right:
+				House.left += 1.0f + level / 5.0f;
+				House.right += 1.0f + level / 5.0f;
+				break;
+
+			case dirs::left:
+				House.left -= (1.0f + level / 5.0f);
+				House.right -= (1.0f + level / 5.0f);
+				break;
+			}
+		}
+
 		// MOVE *****************************************************
 
 		if (Hero && !vPlatforms.empty())
@@ -1781,6 +1943,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 		}
 
+		if (house_active && Hero)
+		{
+			FRECT HeroR{ Hero->start.x,Hero->start.y,Hero->end.x,Hero->end.y };
+			FRECT HouseR{ House.left,House.top,House.right,House.bottom };
+			if (dll::Intersect(HeroR, HouseR))LevelUp(false);
+		}
+
 	// DRAW THINGS ***********************************************
 
 		Draw->BeginDraw();
@@ -1873,6 +2042,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				}
 			}
 		}
+
+		if (house_active)Draw->DrawBitmap(bmpHouse, House);
 
 		if (Hero)
 		{
